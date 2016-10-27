@@ -16,3 +16,7 @@ list(APPEND WPE_PLATFORM_SOURCES
     src/bcm-nexus/renderer-backend.cpp
     src/bcm-nexus/view-backend.cpp
 )
+
+if (USE_INPUT_LIBINPUT)
+    add_definitions(-DKEY_INPUT_HANDLING_LIBINPUT=1)
+endif ()
