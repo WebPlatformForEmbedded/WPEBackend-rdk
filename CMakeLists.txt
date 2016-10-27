@@ -19,6 +19,7 @@ option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based of
 
 option(USE_INPUT_LIBINPUT "Whether to enable support for the libinput input backend" ON)
 option(USE_INPUT_UDEV "Whether to enable support for the libinput input udev lib" ON)
+option(USE_INPUT_WAYLAND "Whether to enable support for the wayland input backend" OFF)
 set(USE_KEY_INPUT_HANDLING_LINUX_INPUT OFF CACHE BOOL "Whether to use <linux/input.h> event codes for keyboard event handling")
 
 find_package(WPE REQUIRED)

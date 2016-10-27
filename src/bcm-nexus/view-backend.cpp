@@ -31,6 +31,11 @@
 #include "Libinput/LibinputServer.h"
 #endif
 
+#ifdef KEY_INPUT_HANDLING_WAYLAND
+#include "display.h"
+#include <wayland-client.h>
+#endif
+
 #include "ipc.h"
 #include "ipc-bcmnexus.h"
 #include <algorithm>
@@ -55,6 +60,32 @@ static const std::array<FormatTuple, 9> s_formatTable = {
    FormatTuple{ "1080p50Hz", 1920, 1080 },
    FormatTuple{ "1080p60Hz", 1920, 1080 },
 };
+
+#ifdef KEY_INPUT_HANDLING_WAYLAND
+static void
+handle_ping(void *data, struct wl_shell_surface *shell_surface,
+                                                       uint32_t serial)
+{
+       wl_shell_surface_pong(shell_surface, serial);
+}
+
+static void
+handle_configure(void *data, struct wl_shell_surface *shell_surface,
+                uint32_t edges, int32_t width, int32_t height)
+{
+}
+
+static void
+handle_popup_done(void *data, struct wl_shell_surface *shell_surface)
+{
+}
+
+static const struct wl_shell_surface_listener shell_surface_listener = {
+       handle_ping,
+       handle_configure,
+       handle_popup_done
+};
+#endif
 
 struct ViewBackend : public IPC::Host::Handler
 #ifdef KEY_INPUT_HANDLING_LIBINPUT
@@ -83,12 +114,21 @@ struct ViewBackend : public IPC::Host::Handler
     struct wpe_view_backend* backend;
     IPC::Host ipcHost;
 
+#ifdef KEY_INPUT_HANDLING_WAYLAND
+    Wayland::Display& m_display;
+    struct wl_surface* m_surface { nullptr };
+    struct wl_shell_surface *m_shellSurface { nullptr };
+#endif
+
     uint32_t width { 0 };
     uint32_t height { 0 };
 };
 
 ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     : backend(backend)
+#ifdef KEY_INPUT_HANDLING_WAYLAND
+    , m_display(Wayland::Display::singleton())
+#endif
 {
     ipcHost.initialize(*this);
 }
@@ -99,6 +139,16 @@ ViewBackend::~ViewBackend()
 
 #ifdef KEY_INPUT_HANDLING_LIBINPUT
     WPE::LibinputServer::singleton().setClient(nullptr);
+#endif
+
+#ifdef KEY_INPUT_HANDLING_WAYLAND
+    m_display.unregisterInputClient(m_surface);
+    if (m_shellSurface)
+        wl_shell_surface_destroy(m_shellSurface);
+    m_shellSurface = nullptr;
+    if (m_surface)
+        wl_surface_destroy(m_surface);
+    m_surface = nullptr;
 #endif
 }
 
@@ -121,6 +171,19 @@ void ViewBackend::initialize()
 
 #ifdef KEY_INPUT_HANDLING_LIBINPUT
     WPE::LibinputServer::singleton().setClient(this);
+#endif
+
+#ifdef KEY_INPUT_HANDLING_WAYLAND
+    m_surface = wl_compositor_create_surface(m_display.interfaces().compositor);
+    if (m_display.interfaces().shell) {
+        m_shellSurface = wl_shell_get_shell_surface(m_display.interfaces().shell, m_surface);
+        if (m_shellSurface) {
+            wl_shell_surface_add_listener(m_shellSurface,
+                                          &shell_surface_listener, NULL);
+        }
+    }
+
+    m_display.registerInputClient(m_surface, backend);
 #endif
 }
 
