@@ -26,13 +26,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <wayland-egl.h>
+
 #include <wpe/renderer-backend-egl.h>
 
 #include "display.h"
 #include "ipc.h"
 #include "ipc-waylandegl.h"
 #include <wayland-client-protocol.h>
-#include <wayland-egl.h>
 
 namespace WaylandEGL {
 
