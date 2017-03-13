@@ -7,29 +7,24 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fno-exceptions -fno-strict-aliasin
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -fno-exceptions -fno-strict-aliasing -fno-rtti")
 
 # Converted
-option(USE_WPEWEBKIT_BACKEND_BCM_NEXUS "Whether to enable support for the BCM_NEXUS WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_BCM_NEXUS_WAYLAND "Whether to enable support for the BCM_NEXUS Wayland WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_BCM_RPI "Whether to enable support for the BCM_RPi WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_INTEL_CE "Whether to enable support for the Intel CE WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
+option(USE_BACKEND_BCM_NEXUS "Whether to enable support for the BCM_NEXUS WPE backend" OFF)
+option(USE_BACKEND_BCM_NEXUS_WAYLAND "Whether to enable support for the BCM_NEXUS Wayland WPE backend" OFF)
+option(USE_BACKEND_BCM_RPI "Whether to enable support for the BCM_RPi WPE backend" OFF)
+option(USE_BACKEND_INTEL_CE "Whether to enable support for the Intel CE WPE backend" OFF)
+option(USE_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WPE backend" OFF)
+option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
 
 option(USE_PLATFORM_BROADCOM "Whether the playback is based on Broadcom plugins" OFF)
-option(USE_WPEWEBKIT_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based offscreen target for westeros Mesa only" OFF)
+option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based offscreen target for westeros Mesa only" OFF)
 
-# TODO
-option(USE_WPEWEBKIT_BACKEND_DRM "Whether to enable support for the DRM WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_DRM_TEGRA "Whether to enable support for the Tegra-specific quirks in the DRM WPE backend" OFF)
-option(USE_WPEWEBKIT_BACKEND_WAYLAND "Whether to enable support for the Wayland WPE backend" OFF)
-
-option(USE_WPEWEBKIT_INPUT_LIBINPUT "Whether to enable support for the libinput input backend" ON)
-option(USE_WPEWEBKIT_INPUT_UDEV "Whether to enable support for the libinput input udev lib" ON)
+option(USE_INPUT_LIBINPUT "Whether to enable support for the libinput input backend" ON)
+option(USE_INPUT_UDEV "Whether to enable support for the libinput input udev lib" ON)
 set(USE_KEY_INPUT_HANDLING_LINUX_INPUT OFF CACHE BOOL "Whether to use <linux/input.h> event codes for keyboard event handling")
 
 find_package(WPE REQUIRED)
 find_package(GLIB 2.38.0 REQUIRED COMPONENTS gio gio-unix)
 
-if (USE_WPEWEBKIT_VIRTUAL_KEYBOARD)
+if (USE_VIRTUAL_KEYBOARD)
     find_package(LibVirtualKeyboard REQUIRED)
     add_definitions(-DKEY_INPUT_HANDLING_VIRTUAL=1)
 endif()
@@ -41,7 +36,7 @@ else ()
     add_definitions(-DKEY_INPUT_HANDLING_XKB=1)
 endif ()
 
-if (USE_WPEWEBKIT_BACKEND_WESTEROS_MESA)
+if (USE_BACKEND_WESTEROS_MESA)
    add_definitions(-DWPE_BACKEND_MESA=1)
 endif ()
 
@@ -70,7 +65,7 @@ if (NOT USE_KEY_INPUT_HANDLING_LINUX_INPUT)
     )
 endif ()
 
-if (USE_WPEWEBKIT_VIRTUAL_KEYBOARD)
+if (USE_VIRTUAL_KEYBOARD)
     list(APPEND WPE_PLATFORM_LIBRARIES
         ${LIBVIRTUAL_KEYBOARD_LIBRARIES}
     )
@@ -88,7 +83,7 @@ set(WPE_PLATFORM_SOURCES
     src/util/ipc.cpp
 )
 
-if (USE_WPEWEBKIT_INPUT_LIBINPUT)
+if (USE_INPUT_LIBINPUT)
     find_package(Libinput REQUIRED)
     list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
         ${LIBINPUT_INCLUDE_DIRS}
@@ -96,7 +91,7 @@ if (USE_WPEWEBKIT_INPUT_LIBINPUT)
     list(APPEND WPE_PLATFORM_LIBRARIES
         ${LIBINPUT_LIBRARIES}
     )
-    if (USE_WPEWEBKIT_INPUT_UDEV)
+    if (USE_INPUT_UDEV)
         find_package(Libudev REQUIRED)
         list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
             ${LIBUDEV_INCLUDE_DIRS}
@@ -112,27 +107,27 @@ if (USE_WPEWEBKIT_INPUT_LIBINPUT)
     )
 endif()
 
-if (USE_WPEWEBKIT_BACKEND_BCM_NEXUS)
+if (USE_BACKEND_BCM_NEXUS)
     include(src/bcm-nexus/CMakeLists.txt)
 endif ()
 
-if (USE_WPEWEBKIT_BACKEND_BCM_NEXUS_WAYLAND)
+if (USE_BACKEND_BCM_NEXUS_WAYLAND)
     include(src/bcm-nexus-wayland/CMakeLists.txt)
 endif ()
 
-if (USE_WPEWEBKIT_BACKEND_BCM_RPI)
+if (USE_BACKEND_BCM_RPI)
     include(src/bcm-rpi/CMakeLists.txt)
 endif ()
 
-if (USE_WPEWEBKIT_BACKEND_INTEL_CE)
+if (USE_BACKEND_INTEL_CE)
     include(src/intelce/CMakeLists.txt)
 endif ()
 
-if (USE_WPEWEBKIT_BACKEND_WAYLAND_EGL)
+if (USE_BACKEND_WAYLAND_EGL)
     include(src/wayland-egl/CMakeLists.txt)
 endif ()
 
-if (USE_WPEWEBKIT_BACKEND_WESTEROS)
+if (USE_BACKEND_WESTEROS)
     include(src/westeros/CMakeLists.txt)
 endif ()
 
