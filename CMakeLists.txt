@@ -1,3 +1,11 @@
+cmake_minimum_required(VERSION 2.8)
+project(WPEBackend-rdk)
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fno-exceptions -fno-strict-aliasing")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -fno-exceptions -fno-strict-aliasing -fno-rtti")
+
 set(WPE_PLATFORM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Source/ThirdParty/WPE-platform")
 
 # Converted
@@ -20,6 +28,7 @@ option(USE_WPEWEBKIT_INPUT_LIBINPUT "Whether to enable support for the libinput 
 option(USE_WPEWEBKIT_INPUT_UDEV "Whether to enable support for the libinput input udev lib" ON)
 set(USE_KEY_INPUT_HANDLING_LINUX_INPUT OFF CACHE BOOL "Whether to use <linux/input.h> event codes for keyboard event handling")
 
+find_package(WPE REQUIRED)
 find_package(GLIB 2.38.0 REQUIRED COMPONENTS gio gio-unix)
 
 if (USE_WPEWEBKIT_VIRTUAL_KEYBOARD)
@@ -39,19 +48,19 @@ if (USE_WPEWEBKIT_BACKEND_WESTEROS_MESA)
 endif ()
 
 set(WPE_PLATFORM_INCLUDE_DIRECTORIES
-    "${CMAKE_SOURCE_DIR}/Source/ThirdParty/WPE/include"
-    "${WPE_PLATFORM_SOURCE_DIR}/src/external"
-    "${WPE_PLATFORM_SOURCE_DIR}/src/input"
-    "${WPE_PLATFORM_SOURCE_DIR}/src/util"
+    "${CMAKE_SOURCE_DIR}/src/external"
+    "${CMAKE_SOURCE_DIR}/src/input"
+    "${CMAKE_SOURCE_DIR}/src/util"
     ${GIO_UNIX_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
+    ${WPE_INCLUDE_DIRS}
 )
 
 set(WPE_PLATFORM_LIBRARIES
-    ${WPE_LIBRARIES}
     ${GLIB_GIO_LIBRARIES}
     ${GLIB_GOBJECT_LIBRARIES}
     ${GLIB_LIBRARIES}
+    ${WPE_LIBRARIES}
 )
 
 if (NOT USE_KEY_INPUT_HANDLING_LINUX_INPUT)
@@ -132,11 +141,11 @@ endif ()
 add_library(WPEBackend-rdk SHARED ${WPE_PLATFORM_SOURCES})
 target_include_directories(WPEBackend-rdk PRIVATE ${WPE_PLATFORM_INCLUDE_DIRECTORIES})
 target_link_libraries(WPEBackend-rdk ${WPE_PLATFORM_LIBRARIES})
-install(TARGETS WPEBackend-rdk DESTINATION "${LIB_INSTALL_DIR}")
+install(TARGETS WPEBackend-rdk DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 # Create a libWPEBackend-default.so symlink to libWPEBackend-rdk.so and install it.
 add_custom_command(TARGET WPEBackend-rdk
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so ${CMAKE_BINARY_DIR}/lib/libWPEBackend-default.so
+  COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so libWPEBackend-default.so
   )
-install(FILES ${CMAKE_BINARY_DIR}/lib/libWPEBackend-default.so DESTINATION lib)
+install(FILES libWPEBackend-default.so DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
