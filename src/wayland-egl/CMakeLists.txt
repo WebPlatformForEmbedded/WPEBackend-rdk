@@ -4,8 +4,8 @@ find_package(WaylandEGL REQUIRED)
 add_definitions(-DBACKEND_WAYLAND_EGL=1)
 
 list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
-    "${WPE_PLATFORM_SOURCE_DIR}/src/wayland"
-    "${WPE_PLATFORM_SOURCE_DIR}/src/wayland/protocols"
+    "${CMAKE_SOURCE_DIR}/src/wayland"
+    "${CMAKE_SOURCE_DIR}/src/wayland/protocols"
     ${WAYLAND_INCLUDE_DIRS}
     ${WAYLAND_EGL_INCLUDE_DIRS}
 )

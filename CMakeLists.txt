@@ -6,8 +6,6 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fno-exceptions -fno-strict-aliasing")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y -fno-exceptions -fno-strict-aliasing -fno-rtti")
 
-set(WPE_PLATFORM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Source/ThirdParty/WPE-platform")
-
 # Converted
 option(USE_WPEWEBKIT_BACKEND_BCM_NEXUS "Whether to enable support for the BCM_NEXUS WPE backend" OFF)
 option(USE_WPEWEBKIT_BACKEND_BCM_NEXUS_WAYLAND "Whether to enable support for the BCM_NEXUS Wayland WPE backend" OFF)

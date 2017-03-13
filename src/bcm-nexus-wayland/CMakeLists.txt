@@ -1,9 +1,9 @@
 add_definitions(-DBACKEND_BCM_NEXUS_WAYLAND=1)
 
 list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
-    "${WPE_PLATFORM_SOURCE_DIR}/src/bcm-nexus-wayland"
-    "${WPE_PLATFORM_SOURCE_DIR}/src/wayland"
-    "${WPE_PLATFORM_SOURCE_DIR}/src/wayland/protocols"
+    "${CMAKE_SOURCE_DIR}/src/bcm-nexus-wayland"
+    "${CMAKE_SOURCE_DIR}/src/wayland"
+    "${CMAKE_SOURCE_DIR}/src/wayland/protocols"
     ${WAYLAND_INCLUDE_DIRS}
 )
 
