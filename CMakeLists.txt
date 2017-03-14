@@ -139,6 +139,6 @@ install(TARGETS WPEBackend-rdk DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 # Create a libWPEBackend-default.so symlink to libWPEBackend-rdk.so and install it.
 add_custom_command(TARGET WPEBackend-rdk
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so libWPEBackend-default.so
+  COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so ${CMAKE_BINARY_DIR}/libWPEBackend-default.so
   )
-install(FILES libWPEBackend-default.so DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+install(FILES ${CMAKE_BINARY_DIR}/libWPEBackend-default.so DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
