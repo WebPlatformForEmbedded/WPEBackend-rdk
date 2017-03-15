@@ -37,6 +37,7 @@
 #include <linux/input.h>
 #include <locale.h>
 #include <memory>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <wayland-client.h>
@@ -514,6 +515,12 @@ Display& Display::singleton()
 Display::Display()
 {
     m_display = wl_display_connect(nullptr);
+
+    if (!m_display) {
+        fprintf(stderr, "Wayland::Display: failed to connect\n");
+        abort();
+    }
+
     m_registry = wl_display_get_registry(m_display);
     wl_registry_add_listener(m_registry, &g_registryListener, &m_interfaces);
     wl_display_roundtrip(m_display);
