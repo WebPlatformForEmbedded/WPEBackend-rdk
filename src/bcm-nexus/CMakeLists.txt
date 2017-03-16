@@ -1,3 +1,5 @@
+find_package(EGL REQUIRED)
+
 add_definitions(-DBACKEND_BCM_NEXUS=1)
 
 list(APPEND WPE_PLATFORM_LIBRARIES
