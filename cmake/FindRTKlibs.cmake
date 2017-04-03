@@ -1,0 +1,11 @@
+find_package(PkgConfig)
+pkg_check_modules(REALTEK kylin-platform-lib)
+
+include(FindPackageHandleStandardArgs)
+
+message("-- REALTEK_LIBRARIES  ${REALTEK_LIBRARIES}")
+message("-- REALTEK_INCLUDE_DIRS ${REALTEK_INCLUDE_DIRS}")
+
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(REALTEK DEFAULT_MSG REALTEK_LIBRARIES)
+
+mark_as_advanced(REALTEK_INCLUDE_DIRS REALTEK_LIBRARIES)
