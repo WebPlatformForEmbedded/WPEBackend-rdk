@@ -13,6 +13,7 @@ option(USE_BACKEND_BCM_RPI "Whether to enable support for the BCM_RPi WPE backen
 option(USE_BACKEND_INTEL_CE "Whether to enable support for the Intel CE WPE backend" OFF)
 option(USE_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WPE backend" OFF)
 option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
+option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL WPE backend" OFF)
 
 option(USE_PLATFORM_BROADCOM "Whether the playback is based on Broadcom plugins" OFF)
 option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based offscreen target for westeros Mesa only" OFF)
@@ -122,6 +123,10 @@ endif ()
 
 if (USE_BACKEND_INTEL_CE)
     include(src/intelce/CMakeLists.txt)
+endif ()
+
+if (USE_BACKEND_REALTEK)
+    include(src/realtek-wl-egl/CMakeLists.txt)
 endif ()
 
 if (USE_BACKEND_WAYLAND_EGL)
