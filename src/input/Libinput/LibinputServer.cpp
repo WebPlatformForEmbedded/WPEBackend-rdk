@@ -307,7 +307,7 @@ void LibinputServer::handleTouchEvent(struct libinput_event *event, enum wpe_inp
 {
     auto* touchEvent = libinput_event_get_touch_event(event);
     uint32_t time = libinput_event_touch_get_time(touchEvent);
-    int id = libinput_event_touch_get_slot(touchEvent);
+    int id = libinput_event_touch_get_seat_slot(touchEvent);
     auto& targetPoint = m_touchEvents[id];
     int32_t x, y;
     
