@@ -114,18 +114,27 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     if (m_backend->display.interfaces().shell) {
         m_shellSurface = wl_shell_get_shell_surface(m_backend->display.interfaces().shell, m_surface);
         if (m_shellSurface) {
-            wl_shell_surface_add_listener(m_shellSurface,
-                                          &shell_surface_listener, NULL);
-            // wl_shell_surface_set_toplevel(m_shellSurface);
-            wl_shell_surface_set_fullscreen(m_shellSurface, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, NULL);
+            wl_shell_surface_add_listener(m_shellSurface, &shell_surface_listener, NULL);
+
+            wl_shell_surface_set_toplevel(m_shellSurface);
+
+            // wl_shell_surface_set_fullscreen(m_shellSurface, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, NULL);
         }
     }
+
+ /*
     struct wl_region *region;
     region = wl_compositor_create_region(m_backend->display.interfaces().compositor);
     wl_region_add(region, 0, 0,
                    width,
                    height);
+ */
+
     wl_surface_set_opaque_region(m_surface, region);
+
+ /*
+    wl_region_destroy(region);
+ */
 
     m_window = wl_egl_window_create(m_surface, width, height);
 }
