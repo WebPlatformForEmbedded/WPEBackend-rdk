@@ -29,6 +29,7 @@
 
 #include <wpe/renderer-backend-egl.h>
 
+#include <stdio.h>
 #include <cstring>
 #include <glib.h>
 #include <wayland-client.h>
@@ -409,7 +410,7 @@ struct wpe_renderer_backend_egl_offscreen_target_interface westeros_renderer_bac
     {
 #if defined(WPE_BACKEND_MESA)        
         auto* target = static_cast<GBM::EGLOffscreenTarget*>(data);
-        printf("westeros_renderer_backend_egl_offscreen_target_interface: native window %x\n", target->surface);`        
+        printf("westeros_renderer_backend_egl_offscreen_target_interface: native window %x\n", target->surface);
         return (EGLNativeWindowType)target->surface;
 #else
         return (EGLNativeWindowType)nullptr;
