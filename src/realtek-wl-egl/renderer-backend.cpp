@@ -130,7 +130,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
                    height);
  */
 
-    wl_surface_set_opaque_region(m_surface, region);
+    wl_surface_set_opaque_region(m_surface, NULL);
 
  /*
     wl_region_destroy(region);
