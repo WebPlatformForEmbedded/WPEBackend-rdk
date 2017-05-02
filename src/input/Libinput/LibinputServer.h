@@ -36,7 +36,7 @@
 #include <libudev.h>
 #include <libinput.h>
 #else
-#include <gluelogic/virtualkeyboard/VirtualKeyboard.h>
+#include <VirtualKeyboard.h>
 #endif
 
 struct wpe_view_backend;

@@ -28,6 +28,7 @@ find_package(GLIB 2.38.0 REQUIRED COMPONENTS gio gio-unix)
 
 if (USE_VIRTUAL_KEYBOARD)
     find_package(LibVirtualKeyboard REQUIRED)
+    include_directories(${LIBVIRTUAL_KEYBOARD_INCLUDE_DIRS})
     add_definitions(-DKEY_INPUT_HANDLING_VIRTUAL=1)
 endif()
 
