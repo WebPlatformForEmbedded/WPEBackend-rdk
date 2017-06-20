@@ -320,4 +320,10 @@
 
 #define VK_OEM_CLEAR 0xFE // Clear key
 
+// From http://www.atsc.org/cms/standards/a100/a_100_2.pdf
+#define VK_COLORED_KEY_0 0x193
+#define VK_COLORED_KEY_1 0x194
+#define VK_COLORED_KEY_2 0x195
+#define VK_COLORED_KEY_3 0x196
+
 #endif // VK_UNKNOWN
