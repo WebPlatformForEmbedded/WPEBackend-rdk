@@ -623,7 +623,14 @@ struct wpe_input_key_mapper_interface libxkbcommon_input_key_mapper_interface = 
                 return VK_HAVI_SUBTITLE;
             case XKB_KEY_XF86Video:
                 return VK_OCAP_ON_DEMAND;
-
+            case XKB_KEY_XF86Launch1:
+                return VK_COLORED_KEY_0;
+            case XKB_KEY_XF86Launch2:
+                return VK_COLORED_KEY_1;
+            case XKB_KEY_XF86Launch3:
+                return VK_COLORED_KEY_2;
+            case XKB_KEY_XF86Launch4:
+                return VK_COLORED_KEY_3;
             default:
                 return 0;
         }
