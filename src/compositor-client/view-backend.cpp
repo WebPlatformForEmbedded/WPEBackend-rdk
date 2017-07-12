@@ -28,14 +28,13 @@
 
 #include <wpe/input.h>
 #include <wpe/view-backend.h>
-#include "display.h"
 #include "ipc.h"
 #include "ipc-waylandegl.h"
 
 #define WIDTH 1280
 #define HEIGHT 720
 
-namespace WaylandEGL {
+namespace CompositorClient {
 
 struct ViewBackend;
 
@@ -71,7 +70,11 @@ void ViewBackend::handleMessage(char* data, size_t size)
         return;
 
     auto& message = IPC::Message::cast(data);
+
+
     switch (message.messageCode) {
+
+/*
     case Wayland::EventDispatcher::MsgType::AXIS:
     {
         struct wpe_input_axis_event * event = reinterpret_cast<wpe_input_axis_event*>(std::addressof(message.messageData));
@@ -95,8 +98,8 @@ void ViewBackend::handleMessage(char* data, size_t size)
         struct wpe_input_keyboard_event * event = reinterpret_cast<wpe_input_keyboard_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_keyboard_event(backend, event);
         break;
-    }
-    case IPC::WaylandEGL::BufferCommit::code:
+    } */
+    case IPC::CompositorClient::BufferCommit::code:
     {
         ackBufferCommit();
         break;
@@ -114,38 +117,38 @@ void ViewBackend::initialize()
 void ViewBackend::ackBufferCommit()
 {
     IPC::Message message;
-    IPC::WaylandEGL::FrameComplete::construct(message);
+    IPC::CompositorClient::FrameComplete::construct(message);
     ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
     wpe_view_backend_dispatch_frame_displayed(backend);
 }
 
-} // namespace WaylandEGL
+} // namespace CompositorClient
 
 extern "C" {
 
-struct wpe_view_backend_interface wayland_egl_view_backend_interface = {
+struct wpe_view_backend_interface compositor_client_view_backend_interface = {
     // create
     [](void*, struct wpe_view_backend* backend) -> void*
     {
-        return new WaylandEGL::ViewBackend(backend);
+        return new CompositorClient::ViewBackend(backend);
     },
     // destroy
     [](void* data)
     {
-        auto* backend = static_cast<WaylandEGL::ViewBackend*>(data);
+        auto* backend = static_cast<CompositorClient::ViewBackend*>(data);
         delete backend;
     },
     // initialize
     [](void* data)
     {
-        auto& backend = *static_cast<WaylandEGL::ViewBackend*>(data);
+        auto& backend = *static_cast<CompositorClient::ViewBackend*>(data);
         backend.initialize();
     },
     // get_renderer_host_fd
     [](void* data) -> int
     {
-        auto& backend = *static_cast<WaylandEGL::ViewBackend*>(data);
+        auto& backend = *static_cast<CompositorClient::ViewBackend*>(data);
         return backend.ipcHost.releaseClientFD();
     },
 };

@@ -27,30 +27,92 @@
  */
 
 #include <wayland-egl.h>
-
 #include <wpe/renderer-backend-egl.h>
 
-#include "display.h"
+#include <Client.h>
+#include <pthread.h>
+
 #include "ipc.h"
 #include "ipc-waylandegl.h"
-#include <wayland-client-protocol.h>
 
-namespace WaylandEGL {
+namespace CompositorClient {
+
+class Process : public WPEFramework::Wayland::Display::IProcess {
+ public:
+  virtual bool Dispatch()
+  {
+      return true;
+  };
+};
+
+static Process process;
+
+static void* Processor(void* arg)
+{
+    printf("[%s:%d] Spin-up the wayland hamster.\n", __FILE__, __LINE__);
+    WPEFramework::Wayland::Display::Instance().Process(SIGINT, &process);
+    printf("[%s:%d] The wayland hamster left the wheel.\n", __FILE__, __LINE__);
+}
+
+static bool inputHandler(const uint32_t state, const uint32_t code, const uint32_t modifiers)
+{
+    printf("[Wayland Input] Received input,  0X%02X was %s\n", code, state == 0 ? "released" : "pressed");
+
+    switch (state) {
+        case WL_KEYBOARD_KEY_STATE_PRESSED:
+            printf("[Wayland Input] Sending key pressed [%d] to WPE.\n", code);
+            break;
+        case WL_KEYBOARD_KEY_STATE_RELEASED:
+            printf("[Wayland Input] Sending key released [%d] to WPE.\n", code);
+            break;
+        default:;
+    }
+
+    return true;
+}
 
 struct Backend {
     Backend();
     ~Backend();
 
-    Wayland::Display& display;
+    WPEFramework::Wayland::Display& display;
+    WPEFramework::Wayland::Display::Surface* client;
 };
 
 Backend::Backend()
-    : display(Wayland::Display::singleton())
+    : display(WPEFramework::Wayland::Display::Instance())
+    , client(nullptr)
 {
+    pthread_t tid;
+    const char* envName = ::getenv("COMPOSITOR_CLIENT_NAME");
+
+    assert(envName == nullptr);
+
+    if (envName != nullptr) {
+        client = new WPEFramework::Wayland::Display::Surface(display.Create(envName, 1280, 720));
+    }
+
+    // set input calback
+    display.Callback(inputHandler);
+
+    // create a wayland loop
+    if (pthread_create(&tid, NULL, Processor, NULL) != 0) {
+        printf("[Wayland] Error creating processor thread\n");
+    }
+
+
 }
 
 Backend::~Backend()
 {
+    if (display.IsOperational()) {
+        // exit wayland loop
+        display.Signal();
+    }
+
+    if (client != nullptr) {
+        delete client;
+    }
 }
 
 struct EGLTarget : public IPC::Client::Handler {
@@ -64,90 +126,24 @@ struct EGLTarget : public IPC::Client::Handler {
     struct wpe_renderer_backend_egl_target* target;
     IPC::Client ipcClient;
 
-    struct wl_surface* m_surface { nullptr };
-    struct wl_shell_surface *m_shellSurface { nullptr };
-    struct wl_egl_window* m_window { nullptr };
-    Backend* m_backend { nullptr };
-};
-
-static void
-handle_ping(void *data, struct wl_shell_surface *shell_surface,
-                                                       uint32_t serial)
-{
-       wl_shell_surface_pong(shell_surface, serial);
-}
-
-static void
-handle_configure(void *data, struct wl_shell_surface *shell_surface,
-                uint32_t edges, int32_t width, int32_t height)
-{
-    printf("BRAM DEBUG [%s:%d] handle_configure called. \n", __FILE__, __LINE__ );
-}
-
-static void
-handle_popup_done(void *data, struct wl_shell_surface *shell_surface)
-{
-}
-
-static const struct wl_shell_surface_listener shell_surface_listener = {
-       handle_ping,
-       handle_configure,
-       handle_popup_done
+    Backend* m_backend{ nullptr };
 };
 
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
     : target(target)
 {
     ipcClient.initialize(*this, hostFd);
-    Wayland::EventDispatcher::singleton().setIPC( ipcClient );
+   //  Wayland::EventDispatcher::singleton().setIPC(ipcClient);
 }
 
 void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
 {
     m_backend = &backend;
-    m_surface = wl_compositor_create_surface(m_backend->display.interfaces().compositor);
-
-    if (!m_surface) {
-        fprintf(stderr, "EGLTarget: unable to create wayland surface\n");
-        return;
-    }
-
-    if (m_backend->display.interfaces().shell) {
-        m_shellSurface = wl_shell_get_shell_surface(m_backend->display.interfaces().shell, m_surface);
-        if (m_shellSurface) {
-            wl_shell_surface_add_listener(m_shellSurface,
-                                          &shell_surface_listener, NULL);
-            // wl_shell_surface_set_toplevel(m_shellSurface);
-
-            printf("BRAM DEBUG Setting title.\n");
-            wl_shell_surface_set_title (m_shellSurface, "WPE TEST TITLE");
-            printf("BRAM DEBUG Setting fullscreen %s.\n" , m_shellSurface->title);
-            wl_shell_surface_set_fullscreen(m_shellSurface, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, NULL);
-        }
-    }
-    struct wl_region *region;
-    region = wl_compositor_create_region(m_backend->display.interfaces().compositor);
-    wl_region_add(region, 0, 0,
-                   width,
-                   height);
-    wl_surface_set_opaque_region(m_surface, region);
-
-    m_window = wl_egl_window_create(m_surface, width, height);
 }
 
 EGLTarget::~EGLTarget()
 {
     ipcClient.deinitialize();
-
-    if (m_window)
-        wl_egl_window_destroy(m_window);
-    m_window = nullptr;
-    if (m_shellSurface)
-        wl_shell_surface_destroy(m_shellSurface);
-    m_shellSurface = nullptr;
-    if (m_surface)
-        wl_surface_destroy(m_surface);
-    m_surface = nullptr;
 }
 
 void EGLTarget::handleMessage(char* data, size_t size)
@@ -157,8 +153,7 @@ void EGLTarget::handleMessage(char* data, size_t size)
 
     auto& message = IPC::Message::cast(data);
     switch (message.messageCode) {
-    case IPC::WaylandEGL::FrameComplete::code:
-    {
+    case IPC::CompositorClient::FrameComplete::code: {
         wpe_renderer_backend_egl_target_dispatch_frame_complete(target);
         break;
     }
@@ -167,97 +162,76 @@ void EGLTarget::handleMessage(char* data, size_t size)
     };
 }
 
-} // namespace WaylandEGL
+} // namespace CompositorClient
 
 extern "C" {
 
-struct wpe_renderer_backend_egl_interface wayland_egl_renderer_backend_egl_interface = {
+struct wpe_renderer_backend_egl_interface compositor_client_renderer_backend_egl_interface = {
     // create
-    [](int) -> void*
-    {
-        return new WaylandEGL::Backend;
+    [](int) -> void* {
+        return new CompositorClient::Backend;
     },
     // destroy
-    [](void* data)
-    {
-        auto* backend = static_cast<WaylandEGL::Backend*>(data);
+    [](void* data) {
+        auto* backend = static_cast<CompositorClient::Backend*>(data);
         delete backend;
     },
     // get_native_display
-    [](void* data) -> EGLNativeDisplayType
-    {
-        auto& backend = *static_cast<WaylandEGL::Backend*>(data);
-        return backend.display.display();
+    [](void* data) -> EGLNativeDisplayType {
+        auto& backend = *static_cast<CompositorClient::Backend*>(data);
     },
 };
 
-struct wpe_renderer_backend_egl_target_interface wayland_egl_renderer_backend_egl_target_interface = {
+struct wpe_renderer_backend_egl_target_interface compositor_client_renderer_backend_egl_target_interface = {
     // create
-    [](struct wpe_renderer_backend_egl_target* target, int host_fd) -> void*
-    {
-        return new WaylandEGL::EGLTarget(target, host_fd);
+    [](struct wpe_renderer_backend_egl_target* target, int host_fd) -> void* {
+        return new CompositorClient::EGLTarget(target, host_fd);
     },
     // destroy
-    [](void* data)
-    {
-        auto* target = static_cast<WaylandEGL::EGLTarget*>(data);
+    [](void* data) {
+        auto* target = static_cast<CompositorClient::EGLTarget*>(data);
         delete target;
     },
     // initialize
-    [](void* data, void* backend_data, uint32_t width, uint32_t height)
-    {
-        auto& target = *static_cast<WaylandEGL::EGLTarget*>(data);
-        auto& backend = *static_cast<WaylandEGL::Backend*>(backend_data);
-        target.initialize(backend, width, height);
+    [](void* data, void* backend_data, uint32_t width, uint32_t height) {
+        auto& target = *static_cast<CompositorClient::EGLTarget*>(data);
+        auto& backend = *static_cast<CompositorClient::Backend*>(backend_data);
     },
     // get_native_window
-    [](void* data) -> EGLNativeWindowType
-    {
-        auto& target = *static_cast<WaylandEGL::EGLTarget*>(data);
-        return target.m_window;
+    [](void* data) -> EGLNativeWindowType {
+        auto& target = *static_cast<CompositorClient::EGLTarget*>(data);
     },
     // resize
-    [](void* data, uint32_t width, uint32_t height)
-    {
+    [](void* data, uint32_t width, uint32_t height) {
     },
     // frame_will_render
-    [](void* data)
-    {
+    [](void* data) {
     },
     // frame_rendered
-    [](void* data)
-    {
-        auto& target = *static_cast<WaylandEGL::EGLTarget*>(data);
+    [](void* data) {
+        auto& target = *static_cast<CompositorClient::EGLTarget*>(data);
 
-        wl_display *display = target.m_backend->display.display();
-        if(display)
-            wl_display_flush(display);
 
         IPC::Message message;
-        IPC::WaylandEGL::BufferCommit::construct(message);
+        IPC::CompositorClient::BufferCommit::construct(message);
         target.ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
     },
 };
 
-struct wpe_renderer_backend_egl_offscreen_target_interface wayland_egl_renderer_backend_egl_offscreen_target_interface = {
+struct wpe_renderer_backend_egl_offscreen_target_interface compositor_client_renderer_backend_egl_offscreen_target_interface = {
     // create
-    []() -> void*
-    {
+    []() -> void* {
         return nullptr;
     },
     // destroy
-    [](void* data)
-    {
+    [](void* data) {
     },
     // initialize
-    [](void* data, void* backend_data)
-    {
+    [](void* data, void* backend_data) {
     },
     // get_native_window
-    [](void* data) -> EGLNativeWindowType
-    {
+    [](void* data) -> EGLNativeWindowType {
         return nullptr;
     },
 };
-
 }

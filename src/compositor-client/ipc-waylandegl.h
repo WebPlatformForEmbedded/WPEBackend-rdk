@@ -26,15 +26,15 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef wpe_platform_ipc_wayland_egl_h
-#define wpe_platform_ipc_wayland_egl_h
+#ifndef wpe_platform_ipc_compositor_client_h
+#define wpe_platform_ipc_compositor_client_h
 
 #include <memory>
 #include <stdint.h>
 
 namespace IPC {
 
-namespace WaylandEGL {
+namespace CompositorClient {
 
 struct BufferCommit {
     uint8_t padding[24];
@@ -66,8 +66,8 @@ struct FrameComplete {
 };
 static_assert(sizeof(FrameComplete) == Message::dataSize, "FrameComplete is of correct size");
 
-} // namespace WaylandEGL
+} // namespace CompositorClient
 
 } // namespace IPC
 
-#endif // wpe_platform_ipc_wayland_egl_h
+#endif // wpe_platform_ipc_compositor_client_h
