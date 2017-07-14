@@ -14,7 +14,7 @@ option(USE_BACKEND_INTEL_CE "Whether to enable support for the Intel CE WPE back
 option(USE_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WPE backend" OFF)
 option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
 option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL WPE backend" OFF)
-option(USE_BACKEND_COMPOSITOR_CLIENT "WPEFramework Compositor plugin support" OFF)
+option(USE_BACKEND_WPEFRAMEWORK "WPEFramework abstraction layer is used as WPE backend" OFF)
 
 option(USE_PLATFORM_BROADCOM "Whether the playback is based on Broadcom plugins" OFF)
 option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based offscreen target for westeros Mesa only" OFF)
@@ -131,8 +131,14 @@ if (USE_BACKEND_REALTEK)
     include(src/realtek-wl-egl/CMakeLists.txt)
 endif ()
 
-if (USE_BACKEND_COMPOSITOR_CLIENT)
-    include(src/compositor-client/CMakeLists.txt)
+if (USE_BACKEND_WPEFRAMEWORK)
+
+    set(WPE_PLATFORM_SOURCES
+        src/loader-impl.cpp
+        src/util/ipc.cpp
+        )
+
+    include(src/wpeframework/CMakeLists.txt)
 endif ()
 
 if (USE_BACKEND_WAYLAND_EGL)

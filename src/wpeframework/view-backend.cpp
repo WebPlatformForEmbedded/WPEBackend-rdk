@@ -28,15 +28,14 @@
 
 #include <wpe/input.h>
 #include <wpe/view-backend.h>
+#include "display.h"
 #include "ipc.h"
-#include "ipc-waylandegl.h"
+#include "ipc-buffer.h"
 
 #define WIDTH 1280
 #define HEIGHT 720
 
-namespace CompositorClient {
-
-struct ViewBackend;
+namespace WPEFramework {
 
 struct ViewBackend : public IPC::Host::Handler {
     ViewBackend(struct wpe_view_backend*);
@@ -70,36 +69,32 @@ void ViewBackend::handleMessage(char* data, size_t size)
         return;
 
     auto& message = IPC::Message::cast(data);
-
-
     switch (message.messageCode) {
-
-/*
-    case Wayland::EventDispatcher::MsgType::AXIS:
+    case Wayland::Display::MsgType::AXIS:
     {
         struct wpe_input_axis_event * event = reinterpret_cast<wpe_input_axis_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_axis_event(backend, event);
         break;
     }
-    case Wayland::EventDispatcher::MsgType::POINTER:
+    case Wayland::Display::MsgType::POINTER:
     {
         struct wpe_input_pointer_event * event = reinterpret_cast<wpe_input_pointer_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_pointer_event(backend, event);
         break;
     }
-    case Wayland::EventDispatcher::MsgType::TOUCH:
+    case Wayland::Display::MsgType::TOUCH:
     {
         struct wpe_input_touch_event * event = reinterpret_cast<wpe_input_touch_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_touch_event(backend, event);
         break;
     }
-    case Wayland::EventDispatcher::MsgType::KEYBOARD:
+    case Wayland::Display::MsgType::KEYBOARD:
     {
         struct wpe_input_keyboard_event * event = reinterpret_cast<wpe_input_keyboard_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_keyboard_event(backend, event);
         break;
-    } */
-    case IPC::CompositorClient::BufferCommit::code:
+    }
+    case IPC::WPEFramework::BufferCommit::code:
     {
         ackBufferCommit();
         break;
@@ -117,38 +112,38 @@ void ViewBackend::initialize()
 void ViewBackend::ackBufferCommit()
 {
     IPC::Message message;
-    IPC::CompositorClient::FrameComplete::construct(message);
+    IPC::WPEFramework::FrameComplete::construct(message);
     ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
     wpe_view_backend_dispatch_frame_displayed(backend);
 }
 
-} // namespace CompositorClient
+} // namespace WPEFramework
 
 extern "C" {
 
-struct wpe_view_backend_interface compositor_client_view_backend_interface = {
+struct wpe_view_backend_interface wpeframework_view_backend_interface = {
     // create
     [](void*, struct wpe_view_backend* backend) -> void*
     {
-        return new CompositorClient::ViewBackend(backend);
+        return new WPEFramework::ViewBackend(backend);
     },
     // destroy
     [](void* data)
     {
-        auto* backend = static_cast<CompositorClient::ViewBackend*>(data);
+        WPEFramework::ViewBackend* backend = static_cast<WPEFramework::ViewBackend*>(data);
         delete backend;
     },
     // initialize
     [](void* data)
     {
-        auto& backend = *static_cast<CompositorClient::ViewBackend*>(data);
+        WPEFramework::ViewBackend& backend (*static_cast<WPEFramework::ViewBackend*>(data));
         backend.initialize();
     },
     // get_renderer_host_fd
     [](void* data) -> int
     {
-        auto& backend = *static_cast<CompositorClient::ViewBackend*>(data);
+        WPEFramework::ViewBackend& backend (*static_cast<WPEFramework::ViewBackend*>(data));
         return backend.ipcHost.releaseClientFD();
     },
 };

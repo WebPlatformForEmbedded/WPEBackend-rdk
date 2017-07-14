@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2015, 2016 Igalia S.L.
  * Copyright (C) 2015, 2016 Metrological
- * Copyright (C) 2016 SoftAtHome
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +25,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef wpe_platform_ipc_compositor_client_h
-#define wpe_platform_ipc_compositor_client_h
+#ifndef compositor_client_interfaces_h
+#define compositor_client_interfaces_h
 
-#include <memory>
-#include <stdint.h>
+#include <wpe/renderer-backend-egl.h>
+#include <wpe/view-backend.h>
 
-namespace IPC {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace CompositorClient {
+extern struct wpe_renderer_backend_egl_interface compositor_client_renderer_backend_egl_interface;
+extern struct wpe_renderer_backend_egl_target_interface compositor_client_renderer_backend_egl_target_interface;
+extern struct wpe_renderer_backend_egl_offscreen_target_interface compositor_client_renderer_backend_egl_offscreen_target_interface;
 
-struct BufferCommit {
-    uint8_t padding[24];
+extern struct wpe_view_backend_interface wpeframework_view_backend_interface;
 
-    static const uint64_t code = 1;
-    static void construct(Message& message)
-    {
-        message.messageCode = code;
-    }
-    static BufferCommit& cast(Message& message)
-    {
-        return *reinterpret_cast<BufferCommit*>(std::addressof(message.messageData));
-    }
-};
-static_assert(sizeof(BufferCommit) == Message::dataSize, "BufferCommit is of correct size");
+#ifdef __cplusplus
+}
+#endif
 
-struct FrameComplete {
-    int8_t padding[24];
-
-    static const uint64_t code = 2;
-    static void construct(Message& message)
-    {
-        message.messageCode = code;
-    }
-    static FrameComplete& cast(Message& message)
-    {
-        return *reinterpret_cast<FrameComplete*>(std::addressof(message.messageData));
-    }
-};
-static_assert(sizeof(FrameComplete) == Message::dataSize, "FrameComplete is of correct size");
-
-} // namespace CompositorClient
-
-} // namespace IPC
-
-#endif // wpe_platform_ipc_compositor_client_h
+#endif // compositor_client_interfaces_h
