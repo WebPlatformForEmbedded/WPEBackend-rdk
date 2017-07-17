@@ -55,8 +55,8 @@ public:
     };
 
     struct IKeyHandler {
-        virtual IKeyHandler() {}
-        virtual void Key (const bool pressed, uint32_t keycode, uint32_ti unicode, uint32_ti modifiers, uint32_t) = 0;
+        virtual ~IKeyHandler() {}
+        virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) = 0;
     };
 
 public:
@@ -66,14 +66,14 @@ public:
     }
 
 public:
-    virtual void KeyMap(const char information[], const uint16 size) override;
-    virtual void Key(const uint32_t key, const uint32_t state, const uint32_t time) override;
+    virtual void KeyMap(const char information[], const uint16_t size) override;
+    virtual void Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) override;
     virtual void Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) override;
     virtual void Repeat(int32_t rate, int32_t delay) override;
 
     void RepeatKeyEvent();
     void RepeatDelayTimeout();
-    void HandleKeyEvent(const uint32_t key, const uint32_t state, const uint32_t time);
+    void HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time);
 
 private:
     IKeyHandler* _callback;
@@ -89,17 +89,17 @@ private:
         uint8_t modifiers;
         struct xkb_compose_table* composeTable;
         struct xkb_compose_state* composeState;
-    } m_xkb { nullptr, nullptr, nullptr, { 0, 0, 0 }, 0, nullptr, nullptr };
+    } _xkb { nullptr, nullptr, nullptr, { 0, 0, 0 }, 0, nullptr, nullptr };
     struct {
         int32_t rate;
         int32_t delay;
-    } repeatInfo { 0, 0 };
+    } _repeatInfo { 0, 0 };
     struct {
         uint32_t key;
         uint32_t time;
-        uint32_t state;
+        IKeyboard::state state;
         uint32_t eventSource;
-    } repeatData { 0, 0, 0, 0 };
+    } _repeatData { 0, 0, IKeyboard::released, 0 };
 };
 
 class Display : public KeyboardHandler::IKeyHandler{
@@ -108,6 +108,7 @@ private:
     Display (const Display&) = delete;
     Display& operator= (const Display&) = delete;
 
+public:
     enum MsgType
     {
 	AXIS = 0x30,
@@ -117,28 +118,36 @@ private:
     };
 
 public:
-    Display(IPC::Client& ipc, struct wpe_view_backend* backend);
+    Display(IPC::Client& ipc);
     ~Display();
 
 public:
     inline Wayland::Display::Surface Create(const std::string& name, const uint32_t width, const uint32_t height) {
         Wayland::Display::Surface newSurface = m_display.Create(name, width, height);
-        newSurface.Callback(&m_Keyboard);
+        newSurface.Keyboard(&m_keyboard);
         return (newSurface);
     }
+    inline void Backend(struct wpe_view_backend* backend) {
+        assert((backend == nullptr) ^ (m_backend == nullptr));
+        m_backend = backend;
+    }
+
     void SendEvent( wpe_input_axis_event& event );
     void SendEvent( wpe_input_pointer_event& event );
     void SendEvent( wpe_input_touch_event& event );
 
+
 private: 
-    virtual void Key (const bool pressed, uint32_t keycode, uint32_ti unicode, uint32_ti modifiers, uint32_t) override;
+    virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
 
 private:
     IPC::Client& m_ipc;
     GSource* m_eventSource;
-    Wayland::Display m_display;
     KeyboardHandler m_keyboard;
     struct wpe_view_backend* m_backend;
+    Wayland::Display& m_display;
+};
+
 } // namespace WPEFramework
 
 #endif // wpe_view_backend_wpeframework_display_h

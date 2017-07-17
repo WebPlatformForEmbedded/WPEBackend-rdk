@@ -24,6 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <wpe/input.h>
+#include <wpe/view-backend.h>
 #include "display.h"
 
 namespace WPEFramework {
@@ -55,7 +57,7 @@ GSourceFuncs EventSource::sourceFuncs = {
         //        return FALSE;
         //    }
         //}
-        m_display.Flush();
+        source.display->Flush();
 
         return FALSE;
     },
@@ -82,7 +84,7 @@ GSourceFuncs EventSource::sourceFuncs = {
         EventSource& source (*(reinterpret_cast<EventSource*>(base)));
 
         if (source.pfd.revents & G_IO_IN) {
-            if (m_display.Process() < 0) {
+            if (source.display->Process() < 0) {
                 fprintf(stderr, "Wayland::Display: error in wayland dispatch\n");
                 return G_SOURCE_REMOVE;
             }
@@ -91,7 +93,7 @@ GSourceFuncs EventSource::sourceFuncs = {
         if (source.pfd.revents & (G_IO_ERR | G_IO_HUP))
             return G_SOURCE_REMOVE;
 
-        source->pfd.revents = 0;
+        source.pfd.revents = 0;
         return G_SOURCE_CONTINUE;
     },
     nullptr, // finalize
@@ -111,95 +113,95 @@ static gboolean repeatDelayTimeout(void* data)
 
 static gboolean repeatRateTimeout(void* data)
 {
-    static_cast<Display*>(data)->RepeatKeyEvent();
+    static_cast<KeyboardHandler*>(data)->RepeatKeyEvent();
     return G_SOURCE_CONTINUE;
 }
 
 void KeyboardHandler::RepeatKeyEvent()
 {
-    HandleKeyEvent(repeatData.key, repeatData.state, repeatData.time);
+    HandleKeyEvent(_repeatData.key, _repeatData.state, _repeatData.time);
 }
 
 void KeyboardHandler::RepeatDelayTimeout() {
     RepeatKeyEvent();
-    repeatData.eventSource = g_timeout_add(repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), this);
+    _repeatData.eventSource = g_timeout_add(_repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), this);
 }
 
-void KeyboardHandler::HandleKeyEvent(const uint32_t key, const uint32_t state, const uint32_t time) {
-    uint32_t keysym = xkb_state_key_get_one_sym(m_xkb.state, key);
-    uint32_t unicode = xkb_state_key_get_utf32(m_xkb.state, key);
+void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
+    uint32_t keysym = xkb_state_key_get_one_sym(_xkb.state, key);
+    uint32_t unicode = xkb_state_key_get_utf32(_xkb.state, key);
 
-    if (m_xkb.composeState
-        && state == WL_KEYBOARD_KEY_STATE_PRESSED
-        && xkb_compose_state_feed(m_xkb.composeState, keysym) == XKB_COMPOSE_FEED_ACCEPTED
-        && xkb_compose_state_get_status(m_xkb.composeState) == XKB_COMPOSE_COMPOSED)
+    if (_xkb.composeState
+        && action == IKeyboard::pressed
+        && xkb_compose_state_feed(_xkb.composeState, keysym) == XKB_COMPOSE_FEED_ACCEPTED
+        && xkb_compose_state_get_status(_xkb.composeState) == XKB_COMPOSE_COMPOSED)
     {
-        keysym = xkb_compose_state_get_one_sym(m_xkb.composeState);
+        keysym = xkb_compose_state_get_one_sym(_xkb.composeState);
         unicode = xkb_keysym_to_utf32(keysym);
     }
 
     // Send the event, it is complete..
-    _callback->Key(!!state, keysym, unicode, m_xkb.modifiers, time);
+    _callback->Key(action == IKeyboard::pressed, keysym, unicode, _xkb.modifiers, time);
 }
 
-/* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16 size) {
-    xkb.keymap = xkb_keymap_new_from_string(xkb.context, information, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+/* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size) {
+    _xkb.keymap = xkb_keymap_new_from_string(_xkb.context, information, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-    if (!xkb.keymap)
+    if (!_xkb.keymap)
         return;
 
-    xkb.state = xkb_state_new(xkb.keymap);
-    if (!xkb.state)
+    _xkb.state = xkb_state_new(_xkb.keymap);
+    if (!_xkb.state)
         return;
 
-    xkb.indexes.control = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_CTRL);
-    xkb.indexes.alt = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_ALT);
-    xkb.indexes.shift = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_SHIFT);
+    _xkb.indexes.control = xkb_keymap_mod_get_index(_xkb.keymap, XKB_MOD_NAME_CTRL);
+    _xkb.indexes.alt = xkb_keymap_mod_get_index(_xkb.keymap, XKB_MOD_NAME_ALT);
+    _xkb.indexes.shift = xkb_keymap_mod_get_index(_xkb.keymap, XKB_MOD_NAME_SHIFT);
 }
 
-/* virtual */ void KeyboardHandler::Key(const uint32_t key, const uint32_t state, const uint32_t time) {
+/* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
     // IDK.
     uint32_t actual_key = key + 8;
-    handleKeyEvent(actual_key, state, time);
+    HandleKeyEvent(actual_key, action, time);
 
-    if (repeatInfo.rate != 0) {
+    if (_repeatInfo.rate != 0) {
 
-        if (state == WL_KEYBOARD_KEY_STATE_RELEASED && repeatData.key == actual_key) {
-            if (repeatData.eventSource)
-                g_source_remove(repeatData.eventSource);
-            repeatData = { 0, 0, 0, 0 };
-        } else if (state == WL_KEYBOARD_KEY_STATE_PRESSED
-            && xkb_keymap_key_repeats(xkb.keymap, actual_key)) {
+        if (action == IKeyboard::released && _repeatData.key == actual_key) {
+            if (_repeatData.eventSource)
+                g_source_remove(_repeatData.eventSource);
+            _repeatData = { 0, 0, IKeyboard::released, 0 };
+        } else if (action == IKeyboard::pressed 
+            && xkb_keymap_key_repeats(_xkb.keymap, actual_key)) {
 
-            if (repeatData.eventSource)
-                g_source_remove(repeatData.eventSource);
+            if (_repeatData.eventSource)
+                g_source_remove(_repeatData.eventSource);
 
-            repeatData = { actual_key, time, state, g_timeout_add(repeatInfo.delay, static_cast<GSourceFunc>(repeatDelayTimeout), this) };
+            _repeatData = { actual_key, time, action, g_timeout_add(_repeatInfo.delay, static_cast<GSourceFunc>(repeatDelayTimeout), this) };
         }
     }
 }
  
 /* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
-   xkb_state_update_mask(xkb.state, depressedMods, latchedMods, lockedMods, 0, 0, group);
+   xkb_state_update_mask(_xkb.state, depressedMods, latchedMods, lockedMods, 0, 0, group);
 
-   xkb.modifiers = 0;
+   _xkb.modifiers = 0;
    auto component = static_cast<xkb_state_component>(XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LATCHED);
-   if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.control, component))
-       xkb.modifiers |= control;
-   if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.alt, component))
-       xkb.modifiers |= alternate;
-   if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.shift, component))
-       xkb.modifiers |= shift;
+   if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.control, component))
+       _xkb.modifiers |= control;
+   if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.alt, component))
+       _xkb.modifiers |= alternate;
+   if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.shift, component))
+       _xkb.modifiers |= shift;
 }
 
 /* virtual */ void KeyboardHandler::Repeat(int32_t rate, int32_t delay) {
-    repeatInfo = { rate, delay };
+    _repeatInfo = { rate, delay };
 
     // A rate of zero disables any repeating.
     if (!rate) {
-        if (repeatData.eventSource) {
-            g_source_remove(repeatData.eventSource);
-            repeatData = { 0, 0, 0, 0 };
+        if (_repeatData.eventSource) {
+            g_source_remove(_repeatData.eventSource);
+            _repeatData = { 0, 0, IKeyboard::released, 0 };
         }
     }
 }
@@ -207,17 +209,17 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const uint32_t state, c
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
-Display::Display(IPC::Client& ipc, struct wpe_view_backend* backend) 
+Display::Display(IPC::Client& ipc) 
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
-    , m_display(Wayland::Display::Instance())
     , m_keyboard(this)
-    , m_backend(backend) {
+    , m_backend(nullptr)
+    , m_display(Wayland::Display::Instance()) {
 
     EventSource* source (reinterpret_cast<EventSource*>(m_eventSource));
 
     source->display = &m_display;
-    source->pfd.fd = wl_display_get_fd(m_display);
+    source->pfd.fd = m_display.FileDescriptor();
     source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
     source->pfd.revents = 0;
     g_source_add_poll(m_eventSource, &source->pfd);
@@ -230,60 +232,48 @@ Display::Display(IPC::Client& ipc, struct wpe_view_backend* backend)
 Display::~Display() {
 }
 
-/* virtual */ void Display::Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
+/* virtual */ void Display::Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time)
 {
-    if ( m_ipc != nullptr )
-    {
-        uint8_t wpe_modifiers = 0;
-        if ((modifiers & KeyboardHandler::control) != 0)
-            wpe_modifiers |= wpe_input_keyboard_modifier_control;
-        if ((modifiers & KeyboardHandler::alternate) != 0)
-            wpe_modifiers |= wpe_input_keyboard_modifier_alt;
-        if ((modifiers & KeyboardHandler::shift) != 0)
-            wpe_modifiers |= wpe_input_keyboard_modifier_shift;
+    uint8_t wpe_modifiers = 0;
+    if ((modifiers & KeyboardHandler::control) != 0)
+        wpe_modifiers |= wpe_input_keyboard_modifier_control;
+    if ((modifiers & KeyboardHandler::alternate) != 0)
+        wpe_modifiers |= wpe_input_keyboard_modifier_alt;
+    if ((modifiers & KeyboardHandler::shift) != 0)
+        wpe_modifiers |= wpe_input_keyboard_modifier_shift;
 
-        struct wpe_input_keyboard_event event = { time, keycode, unicode, pressed, wpe_modifiers };
+    struct wpe_input_keyboard_event event = { time, keycode, unicode, pressed, wpe_modifiers };
 
-        IPC::Message message;
-        message.messageCode = MsgType::KEYBOARD;
-        memcpy( message.messageData, &event, sizeof(event) );
-        m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
+    IPC::Message message;
+    message.messageCode = MsgType::KEYBOARD;
+    memcpy( message.messageData, &event, sizeof(event) );
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
-        wpe_view_backend_dispatch_keyboard_event(m_backend, &event);
-    }
+    wpe_view_backend_dispatch_keyboard_event(m_backend, &event);
 }
 
 void Display::SendEvent( wpe_input_axis_event& event )
 {
-    if ( m_ipc != nullptr )
-    {
-        IPC::Message message;
-        message.messageCode = MsgType::AXIS;
-        memcpy( message.messageData, &event, sizeof(event) );
-        m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
-    }
+    IPC::Message message;
+    message.messageCode = MsgType::AXIS;
+    memcpy( message.messageData, &event, sizeof(event) );
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
 void Display::SendEvent( wpe_input_pointer_event& event )
 {
-    if ( m_ipc != nullptr )
-    {
-        IPC::Message message;
-        message.messageCode = MsgType::POINTER;
-        memcpy( message.messageData, &event, sizeof(event) );
-        m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
-    }
+    IPC::Message message;
+    message.messageCode = MsgType::POINTER;
+    memcpy( message.messageData, &event, sizeof(event) );
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
 void Display::SendEvent( wpe_input_touch_event& event )
 {
-    if ( m_ipc != nullptr )
-    {
-        IPC::Message message;
-        message.messageCode = MsgType::TOUCH;
-        memcpy( message.messageData, &event, sizeof(event) );
-        m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
-    }
+    IPC::Message message;
+    message.messageCode = MsgType::TOUCH;
+    memcpy( message.messageData, &event, sizeof(event) );
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
 /* If we have pointer and or touch support in the abstraction layer, link it through like here 

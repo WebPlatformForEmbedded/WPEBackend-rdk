@@ -70,31 +70,31 @@ void ViewBackend::handleMessage(char* data, size_t size)
 
     auto& message = IPC::Message::cast(data);
     switch (message.messageCode) {
-    case Wayland::Display::MsgType::AXIS:
+    case Display::MsgType::AXIS:
     {
         struct wpe_input_axis_event * event = reinterpret_cast<wpe_input_axis_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_axis_event(backend, event);
         break;
     }
-    case Wayland::Display::MsgType::POINTER:
+    case Display::MsgType::POINTER:
     {
         struct wpe_input_pointer_event * event = reinterpret_cast<wpe_input_pointer_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_pointer_event(backend, event);
         break;
     }
-    case Wayland::Display::MsgType::TOUCH:
+    case Display::MsgType::TOUCH:
     {
         struct wpe_input_touch_event * event = reinterpret_cast<wpe_input_touch_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_touch_event(backend, event);
         break;
     }
-    case Wayland::Display::MsgType::KEYBOARD:
+    case Display::MsgType::KEYBOARD:
     {
         struct wpe_input_keyboard_event * event = reinterpret_cast<wpe_input_keyboard_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_keyboard_event(backend, event);
         break;
     }
-    case IPC::WPEFramework::BufferCommit::code:
+    case IPC::BufferCommit::code:
     {
         ackBufferCommit();
         break;
@@ -112,7 +112,7 @@ void ViewBackend::initialize()
 void ViewBackend::ackBufferCommit()
 {
     IPC::Message message;
-    IPC::WPEFramework::FrameComplete::construct(message);
+    IPC::FrameComplete::construct(message);
     ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
     wpe_view_backend_dispatch_frame_displayed(backend);

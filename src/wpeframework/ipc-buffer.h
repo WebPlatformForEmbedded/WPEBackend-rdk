@@ -34,8 +34,6 @@
 
 namespace IPC {
 
-namespace WPEFramework {
-
 struct BufferCommit {
     uint8_t padding[24];
 
@@ -65,8 +63,6 @@ struct FrameComplete {
     }
 };
 static_assert(sizeof(FrameComplete) == Message::dataSize, "FrameComplete is of correct size");
-
-} // namespace WPEFramework
 
 } // namespace IPC
 

@@ -28,8 +28,7 @@
 
 #include "display.h"
 #include "ipc.h"
-#include "ipc-waylandegl.h"
-#include <wayland-client-protocol.h>
+#include "ipc-buffer.h"
 
 namespace WPEFramework {
 
@@ -37,7 +36,7 @@ struct EGLTarget : public IPC::Client::Handler {
     EGLTarget(struct wpe_renderer_backend_egl_target*, int);
     virtual ~EGLTarget();
 
-    void initialize(Backend& backend, uint32_t width, uint32_t height);
+    void initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height);
     // IPC::Client::Handler
     void handleMessage(char* data, size_t size) override;
 
@@ -45,26 +44,25 @@ struct EGLTarget : public IPC::Client::Handler {
     IPC::Client ipcClient;
 
     EGLNativeWindowType Native() const {
-        return (surface->Native());
+        return (surface.Native());
     }
 
     Display display;
     Wayland::Display::Surface surface;
 };
 
-
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
     : target(target)
     , ipcClient()
     , display(ipcClient)
-    , refcount(1);
 {
     ipcClient.initialize(*this, hostFd);
 }
 
-void EGLTarget::initialize(uint32_t width, uint32_t height)
+void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height)
 {
-    surface = display.CreateSurface(_T("WPE"), width, height);
+    surface = display.Create("WPE", width, height);
+    display.Backend(backend);
 }
 
 EGLTarget::~EGLTarget()
@@ -78,7 +76,7 @@ void EGLTarget::handleMessage(char* data, size_t size)
     {
         auto& message = IPC::Message::cast(data);
         switch (message.messageCode) {
-        case IPC::WPEFramework::FrameComplete::code:
+        case IPC::FrameComplete::code:
         {
             wpe_renderer_backend_egl_target_dispatch_frame_complete(target);
             break;
@@ -106,7 +104,7 @@ struct wpe_renderer_backend_egl_interface wayland_egl_renderer_backend_egl_inter
     // get_native_display
     [](void* data) -> EGLNativeDisplayType
     {
-        return Wayland::Display::Instance().Native();
+        return WPEFramework::Wayland::Display::Instance().Native();
     }
 };
 
@@ -125,8 +123,9 @@ struct wpe_renderer_backend_egl_target_interface wayland_egl_renderer_backend_eg
     // initialize
     [](void* data, void* backend_data, uint32_t width, uint32_t height)
     {
-        WPEFramework::EGLtarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
-        target.initialize(width, height);
+        struct wpe_view_backend* backend (static_cast<struct wpe_view_backend*>(backend_data));
+        WPEFramework::EGLTarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
+        target.initialize(backend, width, height);
     },
     // get_native_window
     [](void* data) -> EGLNativeWindowType
@@ -144,10 +143,10 @@ struct wpe_renderer_backend_egl_target_interface wayland_egl_renderer_backend_eg
     // frame_rendered
     [](void* data)
     {
-        WPEFramework::EGLtarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
+        WPEFramework::EGLTarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
 
         IPC::Message message;
-        IPC::WaylandEGL::BufferCommit::construct(message);
+        IPC::BufferCommit::construct(message);
         target.ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
     },
 };
