@@ -91,7 +91,7 @@ void EGLTarget::handleMessage(char* data, size_t size)
 
 extern "C" {
 
-struct wpe_renderer_backend_egl_interface wayland_egl_renderer_backend_egl_interface = {
+struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_interface = {
     // create
     [](int input) -> void*
     {
@@ -108,7 +108,7 @@ struct wpe_renderer_backend_egl_interface wayland_egl_renderer_backend_egl_inter
     }
 };
 
-struct wpe_renderer_backend_egl_target_interface wayland_egl_renderer_backend_egl_target_interface = {
+struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_egl_target_interface = {
     // create
     [](struct wpe_renderer_backend_egl_target* target, int host_fd) -> void*
     {
@@ -151,7 +151,7 @@ struct wpe_renderer_backend_egl_target_interface wayland_egl_renderer_backend_eg
     },
 };
 
-struct wpe_renderer_backend_egl_offscreen_target_interface wayland_egl_renderer_backend_egl_offscreen_target_interface = {
+struct wpe_renderer_backend_egl_offscreen_target_interface wpeframework_renderer_backend_egl_offscreen_target_interface = {
     // create
     []() -> void*
     {
