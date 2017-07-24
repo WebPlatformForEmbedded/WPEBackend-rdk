@@ -132,12 +132,6 @@ if (USE_BACKEND_REALTEK)
 endif ()
 
 if (USE_BACKEND_WPEFRAMEWORK)
-
-    set(WPE_PLATFORM_SOURCES
-        src/loader-impl.cpp
-        src/util/ipc.cpp
-        )
-
     include(src/wpeframework/CMakeLists.txt)
 endif ()
 
