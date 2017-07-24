@@ -2,7 +2,7 @@ find_package(Wayland REQUIRED)
 find_package(WaylandEGL REQUIRED)
 find_package(WaylandEGLClient REQUIRED)
 
-add_definitions(-DBACKEND_COMPOSITOR_CLIENT=1)
+add_definitions(-DBACKEND_WPEFRAMEWORK=1)
 add_definitions(-DEGL_EGLEXT_PROTOTYPES=1)
 
 list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES

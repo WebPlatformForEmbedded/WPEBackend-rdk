@@ -55,6 +55,10 @@
 #include "westeros/interfaces.h"
 #endif
 
+#ifdef BACKEND_WPEFRAMEWORK
+#include "wpeframework/interfaces.h"
+#endif
+
 #ifdef KEY_INPUT_HANDLING_XKB
 #include "input/XKB/input-libxkbcommon.h"
 #endif
@@ -159,6 +163,18 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
             return &westeros_view_backend_interface;
+#endif
+
+#ifdef BACKEND_WPEFRAMEWORK
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface"))
+            return &wpeframework_renderer_backend_egl_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_target_interface"))
+            return &wpeframework_renderer_backend_egl_target_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_offscreen_target_interface"))
+            return &wpeframework_renderer_backend_egl_offscreen_target_interface;
+
+        if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
+            return &wpeframework_view_backend_interface;
 #endif
 
 #ifdef KEY_INPUT_HANDLING_XKB
