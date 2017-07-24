@@ -25,8 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef compositor_client_interfaces_h
-#define compositor_client_interfaces_h
+#ifndef wpeframework_interfaces_h
+#define wpeframework_interfaces_h
 
 #include <wpe/renderer-backend-egl.h>
 #include <wpe/view-backend.h>
@@ -35,9 +35,9 @@
 extern "C" {
 #endif
 
-extern struct wpe_renderer_backend_egl_interface compositor_client_renderer_backend_egl_interface;
-extern struct wpe_renderer_backend_egl_target_interface compositor_client_renderer_backend_egl_target_interface;
-extern struct wpe_renderer_backend_egl_offscreen_target_interface compositor_client_renderer_backend_egl_offscreen_target_interface;
+extern struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_interface;
+extern struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_egl_target_interface;
+extern struct wpe_renderer_backend_egl_offscreen_target_interface wpeframework_renderer_backend_egl_offscreen_target_interface;
 
 extern struct wpe_view_backend_interface wpeframework_view_backend_interface;
 
@@ -45,4 +45,4 @@ extern struct wpe_view_backend_interface wpeframework_view_backend_interface;
 }
 #endif
 
-#endif // compositor_client_interfaces_h
+#endif // wpeframework_interfaces_h
