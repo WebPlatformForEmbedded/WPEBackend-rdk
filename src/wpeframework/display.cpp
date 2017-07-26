@@ -40,58 +40,31 @@ public:
     GSource source;
     GPollFD pfd;
     Wayland::Display* display;
+    signed int result;
 };
 
 GSourceFuncs EventSource::sourceFuncs = {
     // prepare
-    [](GSource* base, gint* timeout) -> gboolean
-    {
-        EventSource& source (*(reinterpret_cast<EventSource*>(base)));
-        // struct wl_display* display = source->display;
-
+    [](GSource* base, gint* timeout) -> gboolean {
         *timeout = -1;
-
-        // while (wl_display_prepare_read(display) != 0) {
-        //     if (wl_display_dispatch_pending(display) < 0) {
-        //        fprintf(stderr, "Wayland::Display: error in wayland prepare\n");
-        //        return FALSE;
-        //    }
-        //}
-        source.display->Flush();
-
         return FALSE;
     },
     // check
-    [](GSource* base) -> gboolean
-    {
-        EventSource& source (*(reinterpret_cast<EventSource*>(base)));
-        // struct wl_display* display = source->display;
+    [](GSource* base) -> gboolean {
+        EventSource& source(*(reinterpret_cast<EventSource*>(base)));
 
-        if (source.pfd.revents & G_IO_IN) {
-            //if (wl_display_read_events(display) < 0) {
-            //    fprintf(stderr, "Wayland::Display: error in wayland read\n");
-            //    return FALSE;
-            //}
-            return TRUE;
-        } else {
-            //wl_display_cancel_read(display);
-            return FALSE;
-        }
+        source.result = source.display->Process(source.pfd.revents & G_IO_IN);
+
+        return (source.result >= 0 ? TRUE : FALSE);
     },
     // dispatch
-    [](GSource* base, GSourceFunc, gpointer) -> gboolean
-    {
-        EventSource& source (*(reinterpret_cast<EventSource*>(base)));
+    [](GSource* base, GSourceFunc, gpointer) -> gboolean {
+        EventSource& source(*(reinterpret_cast<EventSource*>(base)));
 
-        if (source.pfd.revents & G_IO_IN) {
-            if (source.display->Process() < 0) {
-                fprintf(stderr, "Wayland::Display: error in wayland dispatch\n");
-                return G_SOURCE_REMOVE;
-            }
-        }
-
-        if (source.pfd.revents & (G_IO_ERR | G_IO_HUP))
+        if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
+            fprintf(stderr, "Wayland::Display: error in wayland dispatch\n");
             return G_SOURCE_REMOVE;
+        }
 
         source.pfd.revents = 0;
         return G_SOURCE_CONTINUE;
@@ -134,8 +107,7 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
     if (_xkb.composeState
         && action == IKeyboard::pressed
         && xkb_compose_state_feed(_xkb.composeState, keysym) == XKB_COMPOSE_FEED_ACCEPTED
-        && xkb_compose_state_get_status(_xkb.composeState) == XKB_COMPOSE_COMPOSED)
-    {
+        && xkb_compose_state_get_status(_xkb.composeState) == XKB_COMPOSE_COMPOSED) {
         keysym = xkb_compose_state_get_one_sym(_xkb.composeState);
         unicode = xkb_keysym_to_utf32(keysym);
     }
@@ -165,12 +137,12 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
     HandleKeyEvent(actual_key, action, time);
 
     if (_repeatInfo.rate != 0) {
-
         if (action == IKeyboard::released && _repeatData.key == actual_key) {
             if (_repeatData.eventSource)
                 g_source_remove(_repeatData.eventSource);
             _repeatData = { 0, 0, IKeyboard::released, 0 };
-        } else if (action == IKeyboard::pressed 
+        }
+        else if (action == IKeyboard::pressed
             && xkb_keymap_key_repeats(_xkb.keymap, actual_key)) {
 
             if (_repeatData.eventSource)
@@ -180,18 +152,18 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
         }
     }
 }
- 
-/* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
-   xkb_state_update_mask(_xkb.state, depressedMods, latchedMods, lockedMods, 0, 0, group);
 
-   _xkb.modifiers = 0;
-   auto component = static_cast<xkb_state_component>(XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LATCHED);
-   if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.control, component))
-       _xkb.modifiers |= control;
-   if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.alt, component))
-       _xkb.modifiers |= alternate;
-   if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.shift, component))
-       _xkb.modifiers |= shift;
+/* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
+    xkb_state_update_mask(_xkb.state, depressedMods, latchedMods, lockedMods, 0, 0, group);
+
+    _xkb.modifiers = 0;
+    auto component = static_cast<xkb_state_component>(XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LATCHED);
+    if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.control, component))
+        _xkb.modifiers |= control;
+    if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.alt, component))
+        _xkb.modifiers |= alternate;
+    if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.shift, component))
+        _xkb.modifiers |= shift;
 }
 
 /* virtual */ void KeyboardHandler::Repeat(int32_t rate, int32_t delay) {
@@ -209,14 +181,15 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
-Display::Display(IPC::Client& ipc) 
+Display::Display(IPC::Client& ipc)
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_backend(nullptr)
-    , m_display(Wayland::Display::Instance()) {
+    , m_display(Wayland::Display::Instance())
+{
 
-    EventSource* source (reinterpret_cast<EventSource*>(m_eventSource));
+    EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
 
     source->display = &m_display;
     source->pfd.fd = m_display.FileDescriptor();
@@ -229,10 +202,11 @@ Display::Display(IPC::Client& ipc)
     g_source_attach(m_eventSource, g_main_context_get_thread_default());
 }
 
-Display::~Display() {
+Display::~Display()
+{
 }
 
-/* virtual */ void Display::Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time)
+/* virtual */ void Display::Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time)
 {
     uint8_t wpe_modifiers = 0;
     if ((modifiers & KeyboardHandler::control) != 0)
@@ -246,33 +220,33 @@ Display::~Display() {
 
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
-    memcpy( message.messageData, &event, sizeof(event) );
+    memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
-
-    wpe_view_backend_dispatch_keyboard_event(m_backend, &event);
+    // TODO: this is not needed but it was done in the wayland-egl code, lets remove this later.
+    // wpe_view_backend_dispatch_keyboard_event(m_backend, &event);
 }
 
-void Display::SendEvent( wpe_input_axis_event& event )
+void Display::SendEvent(wpe_input_axis_event& event)
 {
     IPC::Message message;
     message.messageCode = MsgType::AXIS;
-    memcpy( message.messageData, &event, sizeof(event) );
+    memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
-void Display::SendEvent( wpe_input_pointer_event& event )
+void Display::SendEvent(wpe_input_pointer_event& event)
 {
     IPC::Message message;
     message.messageCode = MsgType::POINTER;
-    memcpy( message.messageData, &event, sizeof(event) );
+    memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
-void Display::SendEvent( wpe_input_touch_event& event )
+void Display::SendEvent(wpe_input_touch_event& event)
 {
     IPC::Message message;
     message.messageCode = MsgType::TOUCH;
-    memcpy( message.messageData, &event, sizeof(event) );
+    memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
