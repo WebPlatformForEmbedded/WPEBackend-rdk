@@ -98,7 +98,6 @@ ViewBackend::~ViewBackend()
 
     if (compositor)
     {
-        WstCompositorStop(compositor);
         WstCompositorDestroy(compositor);
         compositor = nullptr;
     }
