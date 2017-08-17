@@ -108,7 +108,16 @@ void ViewBackend::handleMessage(char* data, size_t size)
 
 void ViewBackend::initialize()
 {
-    wpe_view_backend_dispatch_set_size( backend, WIDTH, HEIGHT );
+    uint32_t w = WIDTH, h = HEIGHT;
+    char *tmp;
+
+    if (tmp = std::getenv("WPE_INIT_VIEW_WIDTH"))
+        w = atoi(tmp);
+
+    if (tmp = std::getenv("WPE_INIT_VIEW_HEIGHT"))
+        h = atoi(tmp);
+
+    wpe_view_backend_dispatch_set_size( backend, w, h );
 }
 
 void ViewBackend::ackBufferCommit()
