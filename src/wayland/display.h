@@ -63,12 +63,14 @@ public:
     void sendEvent( wpe_input_pointer_event& event );
     void sendEvent( wpe_input_touch_event& event );
     void sendEvent( wpe_input_keyboard_event& event );
+    void sendEvent( wpe_input_touch_event_raw& event );
     void setIPC( IPC::Client& ipcClient );
     enum MsgType
     {
 	AXIS = 0x30,
 	POINTER,
 	TOUCH,
+	TOUCHSIMPLE,
 	KEYBOARD
     };
 private:
