@@ -1,16 +1,19 @@
+find_package(EGL REQUIRED)
 find_package(Wayland REQUIRED)
 find_package(WaylandEGL REQUIRED)
 
-add_definitions(-DBACKEND_WAYLAND_EGL=1)
+add_definitions(-DBACKEND_WAYLAND_EGL=1 ${EGL_DEFINITIONS})
 
 list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
     "${CMAKE_SOURCE_DIR}/src/wayland"
     "${CMAKE_SOURCE_DIR}/src/wayland/protocols"
+    ${EGL_INCLUDE_DIRS}
     ${WAYLAND_INCLUDE_DIRS}
     ${WAYLAND_EGL_INCLUDE_DIRS}
 )
 
 list(APPEND WPE_PLATFORM_LIBRARIES
+    ${EGL_LIBRARIES}
     ${WAYLAND_LIBRARIES}
     ${WAYLAND_EGL_LIBRARIES}
 )
