@@ -60,6 +60,8 @@ set(WPE_PLATFORM_LIBRARIES
         ${WPE_LIBRARIES}
         )
 
+set(WPE_PLATFORM_EXTRA_CFLAGS)
+
 if (NOT USE_KEY_INPUT_HANDLING_LINUX_INPUT)
     list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
             ${LIBXKBCOMMON_INCLUDE_DIRS}
@@ -146,6 +148,7 @@ endif ()
 add_library(WPEBackend-rdk SHARED ${WPE_PLATFORM_SOURCES})
 target_include_directories(WPEBackend-rdk PRIVATE ${WPE_PLATFORM_INCLUDE_DIRECTORIES})
 target_link_libraries(WPEBackend-rdk ${WPE_PLATFORM_LIBRARIES})
+target_compile_options(WPEBackend-rdk PRIVATE ${WPE_PLATFORM_EXTRA_CFLAGS})
 install(TARGETS WPEBackend-rdk DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 
 # Create a libWPEBackend-default.so symlink to libWPEBackend-rdk.so and install it.

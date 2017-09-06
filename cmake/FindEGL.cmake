@@ -35,6 +35,7 @@ find_package(PkgConfig)
 pkg_check_modules(PC_EGL egl)
 
 if (PC_EGL_FOUND)
+    set(EGL_CFLAFS ${PC_EGL_CFLAGS})
     set(EGL_DEFINITIONS ${PC_EGL_CFLAGS_OTHER})
     set(EGL_NAMES ${PC_EGL_LIBRARIES})
     foreach (_library ${EGL_NAMES})

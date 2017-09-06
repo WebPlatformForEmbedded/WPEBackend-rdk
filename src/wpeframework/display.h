@@ -147,6 +147,7 @@ private:
 private:
     IPC::Client& m_ipc;
     GSource* m_eventSource;
+    GSource* m_eventFlush;
     KeyboardHandler m_keyboard;
     struct wpe_view_backend* m_backend;
     Wayland::Display& m_display;

@@ -27,6 +27,7 @@
 #include <wpe/input.h>
 #include <wpe/view-backend.h>
 #include "display.h"
+#include <cstring>
 
 namespace WPEFramework {
 
@@ -184,17 +185,25 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 Display::Display(IPC::Client& ipc)
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
+    , m_eventFlush(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_backend(nullptr)
     , m_display(Wayland::Display::Instance())
 {
 
     EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
+    EventSource* flush(reinterpret_cast<EventSource*>(m_eventFlush));
 
     source->display = &m_display;
     source->pfd.fd = m_display.FileDescriptor();
     source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
     source->pfd.revents = 0;
+
+    flush->display = &m_display;
+    flush->pfd.fd = m_display.FileDescriptor();
+    flush->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
+    flush->pfd.revents = 0;
+
     g_source_add_poll(m_eventSource, &source->pfd);
     g_source_set_name(m_eventSource, "[WPE] Display");
     g_source_set_priority(m_eventSource, G_PRIORITY_HIGH + 30);
@@ -220,7 +229,7 @@ Display::~Display()
 
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
-    memcpy(message.messageData, &event, sizeof(event));
+    std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
     // TODO: this is not needed but it was done in the wayland-egl code, lets remove this later.
     // wpe_view_backend_dispatch_keyboard_event(m_backend, &event);
@@ -230,7 +239,7 @@ void Display::SendEvent(wpe_input_axis_event& event)
 {
     IPC::Message message;
     message.messageCode = MsgType::AXIS;
-    memcpy(message.messageData, &event, sizeof(event));
+    std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
@@ -238,7 +247,7 @@ void Display::SendEvent(wpe_input_pointer_event& event)
 {
     IPC::Message message;
     message.messageCode = MsgType::POINTER;
-    memcpy(message.messageData, &event, sizeof(event));
+    std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
@@ -246,7 +255,7 @@ void Display::SendEvent(wpe_input_touch_event& event)
 {
     IPC::Message message;
     message.messageCode = MsgType::TOUCH;
-    memcpy(message.messageData, &event, sizeof(event));
+    std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 

@@ -22,3 +22,7 @@ list(APPEND WPE_PLATFORM_SOURCES
     src/wpeframework/view-backend.cpp
     src/wpeframework/display.cpp
 )
+
+list(APPEND WPE_PLATFORM_EXTRA_CFLAGS
+    ${WAYLAND_EGL_CFLAGS}
+)

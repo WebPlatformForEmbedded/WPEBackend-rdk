@@ -3,6 +3,7 @@
 #
 #  WAYLAND_EGL_INCLUDE_DIRS - the wayland-egl include directories
 #  WAYLAND_EGL_LIBRARIES - link these to use wayland-egl.
+#  WAYLAND_EGL_CFLAGS - Platform specific cflags to use.
 #
 # Copyright (C) 2015 Igalia S.L.
 #
@@ -39,6 +40,8 @@ find_library(WAYLAND_EGL_LIBRARIES
     NAMES ${PC_WAYLAND_EGL_LIBRARIES}
     HINTS ${PC_WAYLAND_EGL_LIBRARY_DIRS} ${PC_WAYLAND_EGL_LIBDIR}
 )
+
+set(WAYLAND_EGL_CFLAGS ${PC_WAYLAND_EGL_CFLAGS})
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(WAYLAND_EGL DEFAULT_MSG WAYLAND_EGL_LIBRARIES)
