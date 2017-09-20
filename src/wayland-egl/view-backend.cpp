@@ -93,7 +93,7 @@ void ViewBackend::handleMessage(char* data, size_t size)
     case Wayland::EventDispatcher::MsgType::TOUCHSIMPLE:
     {
         struct wpe_input_touch_event_raw * touchpoint = reinterpret_cast<wpe_input_touch_event_raw*>(std::addressof(message.messageData));
-        struct wpe_input_touch_event event = { touchpoint, sizeof(struct wpe_input_touch_event_raw), touchpoint->type, touchpoint->id, touchpoint->time };
+        struct wpe_input_touch_event event = { touchpoint, 1, touchpoint->type, touchpoint->id, touchpoint->time };
         wpe_view_backend_dispatch_touch_event(backend, &event);
         break;
     }
