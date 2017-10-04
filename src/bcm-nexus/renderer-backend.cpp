@@ -132,6 +132,13 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
     if (nativeWindow)
         return;
 
+    uint32_t nexusClientId(0); // For now we only accept 0. See Mail David Montgomery
+    char *tmp;
+
+    if (tmp = getenv("WPE_CALLSIGN")) {
+        nexusClientId = atoi(tmp);
+    }
+
     NXPL_NativeWindowInfo windowInfo;
     windowInfo.x = 0;
     windowInfo.y = 0;
@@ -139,7 +146,7 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
     windowInfo.height = height;
     windowInfo.stretch = false;
     windowInfo.zOrder = 0;
-    windowInfo.clientID = 0; // For now we only accept 0. See Mail David Montgomery
+    windowInfo.clientID = nexusClientId;
     nativeWindow = NXPL_CreateNativeWindow(&windowInfo);
 
     this->width = width;
