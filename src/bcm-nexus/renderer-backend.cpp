@@ -135,7 +135,7 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
     uint32_t nexusClientId(0); // For now we only accept 0. See Mail David Montgomery
     char *tmp;
 
-    if (tmp = getenv("WPE_CALLSIGN")) {
+    if (tmp = getenv("CLIENT_IDENTIFIER")) {
         nexusClientId = atoi(tmp);
     }
 
