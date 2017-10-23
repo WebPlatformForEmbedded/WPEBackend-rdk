@@ -145,7 +145,9 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
     windowInfo.width = width;
     windowInfo.height = height;
     windowInfo.stretch = false;
+#ifdef BACKEND_BCM_NEXUS_NXCLIENT
     windowInfo.zOrder = 0;
+#endif
     windowInfo.clientID = nexusClientId;
     nativeWindow = NXPL_CreateNativeWindow(&windowInfo);
 
