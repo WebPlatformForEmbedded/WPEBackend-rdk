@@ -31,7 +31,7 @@
 find_package(PkgConfig)
 pkg_check_modules(PC_LIBUDEV libudev)
 
-find_path(LIBUDEV_INCLUDE_DIRS
+ind_path(LIBUDEV_INCLUDE_DIRS
     NAMES udev.h
     HINTS ${PC_LIBUDEV_INCLUDEDIR} ${PC_LIBUDEV_INCLUDE_DIRS}
     )
