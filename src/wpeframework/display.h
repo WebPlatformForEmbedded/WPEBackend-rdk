@@ -132,7 +132,7 @@ public:
         return (newSurface);
     }
     inline void Backend(struct wpe_view_backend* backend) {
-        assert((backend == nullptr) ^ (m_backend == nullptr));
+        assert(((backend == nullptr) ^ (m_backend == nullptr)) || (backend == m_backend) );
         m_backend = backend;
     }
 
