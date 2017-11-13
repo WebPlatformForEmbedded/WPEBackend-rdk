@@ -33,7 +33,7 @@ pkg_check_modules(PC_WESTEROS westeros-compositor)
 
 find_path(WESTEROS_INCLUDE_DIRS
     NAMES westeros-compositor.h
-    HINTS ${PC_WESTEROS_INCLUDE_DIRS} ${PC_WESTEROS_INCUDEDIR}
+    HINTS ${PC_WESTEROS_INCLUDE_DIRS} ${PC_WESTEROS_INCLUDEDIR}
 )
 
 find_library(WESTEROS_LIBRARIES
