@@ -54,10 +54,6 @@ struct Backend {
     NEXUS_DisplayHandle display;
     NEXUS_Error rc;
 
-#ifdef BACKEND_BCM_NEXUS_NXCLIENT
-    NxClient_AllocResults allocResults;
-#endif
-
     NEXUS_SurfaceClientHandle client;
 };
 
@@ -66,18 +62,12 @@ Backend::Backend()
     NEXUS_DisplayHandle displayHandle(nullptr);
 
 #ifdef BACKEND_BCM_NEXUS_NXCLIENT
-    NxClient_AllocSettings allocSettings;
     NxClient_JoinSettings joinSettings;
     NxClient_GetDefaultJoinSettings(&joinSettings);
 
     strcpy(joinSettings.name, "wpe");
 
     NEXUS_Error rc = NxClient_Join(&joinSettings);
-    BDBG_ASSERT(!rc);
-
-    NxClient_GetDefaultAllocSettings(&allocSettings);
-    allocSettings.surfaceClient = 1;
-    rc = NxClient_Alloc(&allocSettings, &allocResults);
     BDBG_ASSERT(!rc);
 #else
     NEXUS_Error rc = NEXUS_Platform_Join();
@@ -91,7 +81,6 @@ Backend::~Backend()
 {
     NXPL_UnregisterNexusDisplayPlatform(nxplHandle);
 #ifdef BACKEND_BCM_NEXUS_NXCLIENT
-    NxClient_Free(&allocResults);
     NxClient_Uninit();
 #endif
 }
