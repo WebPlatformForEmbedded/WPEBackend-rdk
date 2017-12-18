@@ -111,6 +111,11 @@ if (USE_INPUT_LIBINPUT)
             src/input/Libinput/KeyboardEventRepeating.cpp
             src/input/Libinput/LibinputServer.cpp
             )
+elseif (USE_VIRTUAL_KEYBOARD)
+    list(APPEND WPE_PLATFORM_SOURCES
+            src/input/Libinput/KeyboardEventRepeating.cpp
+            src/input/Libinput/LibinputServer.cpp
+            )
 endif()
 
 if (USE_BACKEND_BCM_NEXUS)

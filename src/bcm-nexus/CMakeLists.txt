@@ -17,7 +17,7 @@ list(APPEND WPE_PLATFORM_SOURCES
     src/bcm-nexus/view-backend.cpp
 )
 
-if (USE_INPUT_LIBINPUT)
+if (USE_INPUT_LIBINPUT OR USE_VIRTUAL_KEYBOARD)
     add_definitions(-DKEY_INPUT_HANDLING_LIBINPUT=1)
 endif ()
 
