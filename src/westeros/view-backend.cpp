@@ -73,6 +73,12 @@ ViewBackend::ViewBackend(struct wpe_view_backend* backend)
         const char * nestedDisplayName = WstCompositorGetDisplayName(compositor);
         setenv("WAYLAND_DISPLAY", nestedDisplayName, 1);
     }
+    const char* rendererName = std::getenv("WESTEROS_RENDERER");
+    if (rendererName)
+    {
+        fprintf(stderr, "ViewBackendWesteros: running with renderer %s\n", rendererName);
+        WstCompositorSetRendererModule(compositor, rendererName);
+    }
 
     if (!WstCompositorStart(compositor))
     {
