@@ -503,9 +503,6 @@ struct wpe_input_key_mapper_interface linuxinput_input_key_mapper_interface = {
     // VK_BROWSER_SEARCH (0xAA) // Windows 2000/XP: Browser Search key
     // VK_BROWSER_FAVORITES (0xAB) // Windows 2000/XP: Browser Favorites key
     // VK_BROWSER_HOME (0xAC) // Windows 2000/XP: Browser Start and Home key
-    // VK_VOLUME_MUTE (0xAD) // Windows 2000/XP: Volume Mute key
-    // VK_VOLUME_DOWN (0xAE) // Windows 2000/XP: Volume Down key
-    // VK_VOLUME_UP (0xAF) // Windows 2000/XP: Volume Up key
             case KEY_FORWARD:
                 return VK_MEDIA_NEXT_TRACK;
             case KEY_REWIND:
@@ -514,6 +511,26 @@ struct wpe_input_key_mapper_interface linuxinput_input_key_mapper_interface = {
                 return VK_MEDIA_STOP;
             case KEY_PLAYPAUSE:
                 return VK_MEDIA_PLAY_PAUSE;
+            case KEY_PLAY:
+                return VK_PLAY; // VK_PLAY (0xFA) // Play key
+            case KEY_VOLUMEUP:
+                return VK_VOLUME_UP; // Windows 2000/XP: Volume Up key
+            case KEY_VOLUMEDOWN:
+                return VK_VOLUME_DOWN; // Windows 2000/XP: Volume Down key
+            case KEY_MUTE:
+                return VK_VOLUME_MUTE; // Windows 2000/XP: Volume Mute key
+            case KEY_RED:
+                return 0x193; // Google/YouTube red key
+            case KEY_GREEN:
+                return 0x194; // Google/YouTube green key
+            case KEY_YELLOW:
+                return 0x195; // Google/YouTube yellow key 
+            case KEY_BLUE:
+                return 0x196; // Google/YouTube blue key
+            case KEY_CHANNELUP:
+                return 0x1AB; // Google/YouTube channel up
+            case KEY_CHANNELDOWN:
+                return 0x1AC; // Google/YouTube channel down
     // VK_MEDIA_LAUNCH_MAIL (0xB4) // Windows 2000/XP: Start Mail key
     // VK_MEDIA_LAUNCH_MEDIA_SELECT (0xB5) // Windows 2000/XP: Select Media key
     //        case KEY_EPG:
@@ -550,7 +567,6 @@ struct wpe_input_key_mapper_interface linuxinput_input_key_mapper_interface = {
     // VK_CRSEL (0xF7) // CrSel key
     // VK_EXSEL (0xF8) // ExSel key
     // VK_EREOF (0xF9) // Erase EOF key
-    // VK_PLAY (0xFA) // Play key
     // VK_ZOOM (0xFB) // Zoom key
     // VK_NONAME (0xFC) // Reserved for future use
     // VK_PA1 (0xFD) // VK_PA1 (FD) PA1 key
