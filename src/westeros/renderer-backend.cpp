@@ -120,8 +120,14 @@ GSourceFuncs EventSource::sourceFuncs = {
         struct wl_display* display = source->display;
 
         *timeout = -1;
+
+        while (wl_display_prepare_read(display) != 0) {
+            if (wl_display_dispatch_pending(display) < 0) {
+                printf("Wayland::Display: error in wayland prepare\n");
+                return FALSE;
+            }
+        }
         wl_display_flush(display);
-        wl_display_dispatch_pending(display);
 
         return FALSE;
     },
@@ -129,7 +135,18 @@ GSourceFuncs EventSource::sourceFuncs = {
     [](GSource* base) -> gboolean
     {
         auto* source = reinterpret_cast<EventSource*>(base);
-        return !!source->pfd.revents;
+        struct wl_display* display = source->display;
+
+        if (source->pfd.revents & G_IO_IN) {
+            if (wl_display_read_events(display) < 0) {
+                printf("Wayland::Display: error in wayland read\n");
+                return FALSE;
+            }
+            return TRUE;
+        } else {
+            wl_display_cancel_read(display);
+            return FALSE;
+        }
     },
     // dispatch
     [](GSource* base, GSourceFunc, gpointer) -> gboolean
@@ -137,14 +154,18 @@ GSourceFuncs EventSource::sourceFuncs = {
         auto* source = reinterpret_cast<EventSource*>(base);
         struct wl_display* display = source->display;
 
-        if (source->pfd.revents & G_IO_IN)
-            wl_display_dispatch(display);
+        if (source->pfd.revents & G_IO_IN) {
+            if (wl_display_dispatch_pending(display) < 0) {
+                printf("Wayland::Display: error in wayland dispatch\n");
+                return G_SOURCE_REMOVE;
+            }
+        }
 
         if (source->pfd.revents & (G_IO_ERR | G_IO_HUP))
-            return FALSE;
+            return G_SOURCE_REMOVE;
 
         source->pfd.revents = 0;
-        return TRUE;
+        return G_SOURCE_CONTINUE;
     },
     nullptr, // finalize
     nullptr, // closure_callback
