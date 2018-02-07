@@ -506,7 +506,10 @@ struct wpe_input_key_mapper_interface linuxinput_input_key_mapper_interface = {
             case KEY_FORWARD:
                 return VK_MEDIA_NEXT_TRACK;
             case KEY_REWIND:
-                return VK_MEDIA_PREV_TRACK;
+                return 0xE3; // (E3) Android/GoogleTV: Rewind media key (Windows: VK_ICO_HELP Help key on 1984 Olivetti M24 deluxe keyboard)
+    // VK_MEDIA_PREV_TRACK;
+            case KEY_FASTFORWARD:
+                return 0xE4; // (E4) Android/GoogleTV: Fast forward media key  (Windows: VK_ICO_00 '00' key on 1984 Olivetti M24 deluxe keyboard)
             case KEY_STOP:
                 return VK_MEDIA_STOP;
             case KEY_PLAYPAUSE:
