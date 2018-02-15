@@ -35,6 +35,12 @@
 #include <wayland-client.h>
 #include <wayland-egl.h>
 
+#ifndef NDEBUG
+#define DEBUG_PRINT(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUG_PRINT(...) (void(0))
+#endif
+
 #if defined(WPE_BACKEND_MESA)
 #include <gbm.h>
 #include <fcntl.h>
@@ -60,12 +66,12 @@ struct EGLOffscreenTarget {
        if (device)
            surface = gbm_surface_create(device, width, height, GBM_FORMAT_XRGB8888, GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
        else{
-           printf("EGLOffscreenTarget: gbm device is null\n");
+           DEBUG_PRINT("EGLOffscreenTarget: gbm device is null\n");
            return;
        }
 
        if (!surface)
-           printf("EGLOffscreenTarget: gbm surface created failed\n");
+           DEBUG_PRINT("EGLOffscreenTarget: gbm surface created failed\n");
     }
 };
 
@@ -74,13 +80,13 @@ struct Backend {
     {
         fd = open(DEFAULT_CARD, O_RDWR | O_CLOEXEC | O_NOCTTY | O_NONBLOCK);
         if (fd < 0){
-            printf("Backend: DRM device open failure\n");
+            DEBUG_PRINT("Backend: DRM device open failure\n");
             return;
         }
 
         device = gbm_create_device(fd);
         if (!device) {
-            printf("Backend: gbm device not created\n");
+            DEBUG_PRINT("Backend: gbm device not created\n");
             close(fd);
             return;
         }
@@ -123,7 +129,7 @@ GSourceFuncs EventSource::sourceFuncs = {
 
         while (wl_display_prepare_read(display) != 0) {
             if (wl_display_dispatch_pending(display) < 0) {
-                printf("Wayland::Display: error in wayland prepare\n");
+                DEBUG_PRINT("Wayland::Display: error in wayland prepare\n");
                 return FALSE;
             }
         }
@@ -139,7 +145,7 @@ GSourceFuncs EventSource::sourceFuncs = {
 
         if (source->pfd.revents & G_IO_IN) {
             if (wl_display_read_events(display) < 0) {
-                printf("Wayland::Display: error in wayland read\n");
+                DEBUG_PRINT("Wayland::Display: error in wayland read\n");
                 return FALSE;
             }
             return TRUE;
@@ -156,7 +162,7 @@ GSourceFuncs EventSource::sourceFuncs = {
 
         if (source->pfd.revents & G_IO_IN) {
             if (wl_display_dispatch_pending(display) < 0) {
-                printf("Wayland::Display: error in wayland dispatch\n");
+                DEBUG_PRINT("Wayland::Display: error in wayland dispatch\n");
                 return G_SOURCE_REMOVE;
             }
         }
@@ -431,7 +437,7 @@ struct wpe_renderer_backend_egl_offscreen_target_interface westeros_renderer_bac
     {
 #if defined(WPE_BACKEND_MESA)        
         auto* target = static_cast<GBM::EGLOffscreenTarget*>(data);
-        printf("westeros_renderer_backend_egl_offscreen_target_interface: native window %x\n", target->surface);
+        DEBUG_PRINT("westeros_renderer_backend_egl_offscreen_target_interface: native window %x\n", target->surface);
         return (EGLNativeWindowType)target->surface;
 #else
         return (EGLNativeWindowType)nullptr;
