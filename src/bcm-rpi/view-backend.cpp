@@ -160,7 +160,7 @@ void ViewBackend::initialize()
 void ViewBackend::initializeRenderingTarget()
 {
     static VC_DISPMANX_ALPHA_T alpha = {
-        static_cast<DISPMANX_FLAGS_ALPHA_T>(DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS),
+        static_cast<DISPMANX_FLAGS_ALPHA_T>(DISPMANX_FLAGS_ALPHA_FROM_SOURCE),
         255, 0
     };
 
