@@ -14,6 +14,7 @@ option(USE_BACKEND_INTEL_CE "Whether to enable support for the Intel CE WPE back
 option(USE_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WPE backend" OFF)
 option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
 option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL WPE backend" OFF)
+option(USE_BACKEND_VIV_IMX6_EGL "Whether to enable support for NXP's IMX6 EGL WPE backend" OFF)
 option(USE_BACKEND_WPEFRAMEWORK "WPEFramework abstraction layer is used as WPE backend" OFF)
 
 option(USE_PLATFORM_BROADCOM "Whether the playback is based on Broadcom plugins" OFF)
@@ -148,6 +149,10 @@ endif ()
 
 if (USE_BACKEND_WESTEROS)
     include(src/westeros/CMakeLists.txt)
+endif ()
+
+if (USE_BACKEND_VIV_IMX6_EGL)
+    include(src/viv-imx6/CMakeLists.txt)
 endif ()
 
 add_library(WPEBackend-rdk SHARED ${WPE_PLATFORM_SOURCES})
