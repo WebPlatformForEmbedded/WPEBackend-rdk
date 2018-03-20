@@ -55,6 +55,10 @@
 #include "westeros/interfaces.h"
 #endif
 
+#ifdef BACKEND_VIV_IMX6_EGL
+#include "viv-imx6/interfaces.h"
+#endif
+
 #ifdef BACKEND_WPEFRAMEWORK
 #include "wpeframework/interfaces.h"
 #endif
@@ -163,6 +167,18 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
             return &westeros_view_backend_interface;
+#endif
+
+#ifdef BACKEND_VIV_IMX6_EGL
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface"))
+            return &viv_imx6_renderer_backend_egl_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_target_interface"))
+            return &viv_imx6_renderer_backend_egl_target_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_offscreen_target_interface"))
+            return &viv_imx6_renderer_backend_egl_offscreen_target_interface;
+
+        if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
+            return &viv_imx6_view_backend_interface;
 #endif
 
 #ifdef BACKEND_WPEFRAMEWORK
