@@ -49,12 +49,6 @@ struct Backend {
     ~Backend();
 
     NXPL_PlatformHandle nxplHandle;
-
-    NEXUS_GraphicsSettings graphicsSettings;
-    NEXUS_DisplayHandle display;
-    NEXUS_Error rc;
-
-    NEXUS_SurfaceClientHandle client;
 };
 
 Backend::Backend()
