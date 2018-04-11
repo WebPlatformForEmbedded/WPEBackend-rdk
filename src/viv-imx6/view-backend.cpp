@@ -79,6 +79,19 @@ ViewBackend::~ViewBackend()
 
 void ViewBackend::initialize()
 {
+    uint32_t width = WIDTH, height = HEIGHT;
+    char *tmp;
+
+    if (tmp = std::getenv("WPE_INIT_VIEW_WIDTH")) {
+        width = atoi(tmp);
+        this->width = { width };
+    };
+
+    if (tmp = std::getenv("WPE_INIT_VIEW_HEIGHT")) {
+        height = atoi(tmp);
+        this->height = { height };
+    };
+
     wpe_view_backend_dispatch_set_size(backend, width, height);
 
     WPE::LibinputServer::singleton().setClient(this);
