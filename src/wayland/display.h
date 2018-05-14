@@ -30,7 +30,7 @@
 #include <array>
 #include <unordered_map>
 #include <utility>
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon.h>
 #include "ipc.h"

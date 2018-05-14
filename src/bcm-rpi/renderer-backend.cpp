@@ -25,7 +25,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wpe/renderer-backend-egl.h>
+#include <wpe/wpe-egl.h>
 
 #include "ipc.h"
 #include "ipc-rpi.h"
