@@ -28,8 +28,7 @@
 #ifndef wayland_egl_interfaces_h
 #define wayland_egl_interfaces_h
 
-#include <wpe/renderer-backend-egl.h>
-#include <wpe/view-backend.h>
+#include <wpe/wpe.h>
 
 #ifdef __cplusplus
 extern "C" {

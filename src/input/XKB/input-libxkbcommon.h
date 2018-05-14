@@ -30,7 +30,7 @@
 
 #ifdef KEY_INPUT_HANDLING_XKB
 
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 
 #ifdef __cplusplus
 extern "C" {
