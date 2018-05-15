@@ -1,8 +1,8 @@
 #ifndef bcm_nexus_wayland_interfaces_h
 #define bcm_nexus_wayland_interfaces_h
 
-#include <wpe/renderer-backend-egl.h>
-#include <wpe/view-backend.h>
+#include <wpe/wpe-egl.h>
+#include <wpe/wpe.h>
 
 #ifdef __cplusplus
 extern "C" {

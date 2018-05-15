@@ -29,7 +29,7 @@
 
 #include "ipc.h"
 
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 #include <wayland/Client.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon.h>

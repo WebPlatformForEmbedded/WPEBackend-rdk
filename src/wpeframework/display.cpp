@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wpe/input.h>
-#include <wpe/view-backend.h>
+#include <wpe/wpe.h>
 #include "display.h"
 #include <cstring>
 
