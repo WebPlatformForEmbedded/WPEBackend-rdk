@@ -4,6 +4,7 @@ add_definitions(-DBACKEND_BCM_NEXUS=1)
 
 list(APPEND WPE_PLATFORM_LIBRARIES
     nxpl
+    v3ddriver
 )
 
 if (EGL_LIBRARIES_nxclient)
@@ -11,6 +12,15 @@ if (EGL_LIBRARIES_nxclient)
     add_definitions(-DBACKEND_BCM_NEXUS_NXCLIENT=1)
     list(APPEND WPE_PLATFORM_LIBRARIES nxclient)
 endif()
+
+# TODO: write a pc file for this.
+if (NEXUS_CLIENT_MODE)
+    message(STATUS "Building with nexus in client mode" )
+    list(APPEND WPE_PLATFORM_LIBRARIES nexus_client)
+else ()
+    message(STATUS "Building with nexus in proxy mode" )
+    list(APPEND WPE_PLATFORM_LIBRARIES nexus)
+endif ()
 
 list(APPEND WPE_PLATFORM_SOURCES
     src/bcm-nexus/renderer-backend.cpp
