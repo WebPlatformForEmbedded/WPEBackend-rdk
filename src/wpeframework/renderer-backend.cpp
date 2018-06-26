@@ -30,6 +30,9 @@
 #include "ipc.h"
 #include "ipc-buffer.h"
 
+#include <chrono>
+#include <string>
+
 namespace WPEFramework {
 
 struct EGLTarget : public IPC::Client::Handler {
@@ -63,7 +66,9 @@ void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uin
 {
     const char* callsign (std::getenv("CLIENT_IDENTIFIER"));
 
-    surface = display.Create((callsign == nullptr) ? "WebKitBrowser_default" : callsign, width, height);
+    surface = display.Create((callsign == nullptr) ?
+            "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()) :
+                             callsign, width, height);
     display.Backend(backend);
 }
 
