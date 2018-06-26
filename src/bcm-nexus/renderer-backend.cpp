@@ -42,6 +42,50 @@
 #include <refsw/nxclient.h>
 #endif
 
+#include <chrono>
+#include <string>
+
+class Client {
+public:
+    Client()
+            : _name("WebKitBrowser_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()))
+            , _id(~0)
+    {
+        char *tmp;
+
+        if (tmp = getenv("CLIENT_IDENTIFIER")) {
+            char *token = strtok(tmp, ",");
+
+            if (token != NULL)
+            {
+                _id = atoi(token);
+            }
+
+            token = strtok(NULL, ",");
+
+            if (token != NULL)
+            {
+                _name =  std::string(token);
+            }
+        }
+    }
+
+public:
+    std::string Name(){
+        return _name;
+    }
+
+    uint8_t ID(){
+        return _id;
+    }
+
+private:
+    std::string _name;
+    uint8_t _id;
+};
+
+static Client g_client;
+
 namespace BCMNexus {
 
 struct Backend {
@@ -59,7 +103,7 @@ Backend::Backend()
     NxClient_JoinSettings joinSettings;
     NxClient_GetDefaultJoinSettings(&joinSettings);
 
-    strcpy(joinSettings.name, "wpe");
+    strcpy(joinSettings.name, g_client.Name().c_str());
 
     NEXUS_Error rc = NxClient_Join(&joinSettings);
     BDBG_ASSERT(!rc);
@@ -116,10 +160,9 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
         return;
 
     uint32_t nexusClientId(0); // For now we only accept 0. See Mail David Montgomery
-    char *tmp;
 
-    if (tmp = getenv("CLIENT_IDENTIFIER")) {
-        nexusClientId = atoi(tmp);
+    if (g_client.ID() != uint8_t(~0)){
+        nexusClientId = g_client.ID();
     }
 
     NXPL_NativeWindowInfo windowInfo;
