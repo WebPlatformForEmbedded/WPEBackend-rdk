@@ -29,8 +29,9 @@
 
 #include "ipc.h"
 
+#include <assert.h>
 #include <wpe/input.h>
-#include <wayland/Client.h>
+#include <compositor/Client.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -40,7 +41,7 @@ typedef struct _GSource GSource;
 
 namespace WPEFramework {
 
-class KeyboardHandler : public Wayland::Display::IKeyboard
+class KeyboardHandler : public Compositor::IDisplay::IKeyboard
 {
 private:
     KeyboardHandler () = delete;
@@ -60,6 +61,12 @@ public:
     };
 
 public:
+    virtual uint32_t AddRef() const {
+        return (0);
+    }
+    virtual uint32_t Release() const {
+        return (0);
+    }
     KeyboardHandler (IKeyHandler* callback) : _callback(callback) {
         _xkb.context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
         _xkb.composeTable = xkb_compose_table_new_from_locale(_xkb.context, setlocale(LC_CTYPE, nullptr), XKB_COMPOSE_COMPILE_NO_FLAGS);
@@ -126,9 +133,11 @@ public:
     ~Display();
 
 public:
-    inline Wayland::Display::Surface Create(const std::string& name, const uint32_t width, const uint32_t height) {
-        Wayland::Display::Surface newSurface = m_display.Create(name, width, height);
-        newSurface.Keyboard(&m_keyboard);
+   inline Compositor::IDisplay::ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height) {
+        Compositor::IDisplay::ISurface* newSurface = m_display->Create(name, width, height);
+        if (newSurface != nullptr) {
+            newSurface->Keyboard(&m_keyboard);
+        }
         return (newSurface);
     }
     inline void Backend(struct wpe_view_backend* backend) {
@@ -147,10 +156,9 @@ private:
 private:
     IPC::Client& m_ipc;
     GSource* m_eventSource;
-    GSource* m_eventFlush;
     KeyboardHandler m_keyboard;
     struct wpe_view_backend* m_backend;
-    Wayland::Display& m_display;
+    Compositor::IDisplay* m_display;
 };
 
 } // namespace WPEFramework

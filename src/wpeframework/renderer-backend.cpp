@@ -47,11 +47,11 @@ struct EGLTarget : public IPC::Client::Handler {
     IPC::Client ipcClient;
 
     EGLNativeWindowType Native() const {
-        return (surface.Native());
+        return (surface->Native());
     }
 
     Display display;
-    Wayland::Display::Surface surface;
+    Compositor::IDisplay::ISurface* surface;
 };
 
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
@@ -111,7 +111,7 @@ struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_inte
     // get_native_display
     [](void* data) -> EGLNativeDisplayType
     {
-        return WPEFramework::Wayland::Display::Instance().Native();
+        return WPEFramework::Compositor::IDisplay::Instance(std::string())->Native();
     }
 };
 

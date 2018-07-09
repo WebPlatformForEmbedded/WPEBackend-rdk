@@ -40,7 +40,7 @@ public:
 
     GSource source;
     GPollFD pfd;
-    Wayland::Display* display;
+    Compositor::IDisplay* display;
     signed int result;
 };
 
@@ -63,7 +63,7 @@ GSourceFuncs EventSource::sourceFuncs = {
         EventSource& source(*(reinterpret_cast<EventSource*>(base)));
 
         if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
-            fprintf(stderr, "Wayland::Display: error in wayland dispatch\n");
+            fprintf(stderr, "Compositor::Display: error in compositor dispatch\n");
             return G_SOURCE_REMOVE;
         }
 
@@ -185,30 +185,25 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 Display::Display(IPC::Client& ipc)
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
-    , m_eventFlush(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_backend(nullptr)
-    , m_display(Wayland::Display::Instance())
+    , m_display(Compositor::IDisplay::Instance(std::string()))
 {
-
+    int descriptor = m_display->FileDescriptor();
     EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
-    EventSource* flush(reinterpret_cast<EventSource*>(m_eventFlush));
 
-    source->display = &m_display;
-    source->pfd.fd = m_display.FileDescriptor();
-    source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
-    source->pfd.revents = 0;
+    if (descriptor != -1) {
+        source->display = m_display;
+        source->pfd.fd = descriptor;
+        source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
+        source->pfd.revents = 0;
 
-    flush->display = &m_display;
-    flush->pfd.fd = m_display.FileDescriptor();
-    flush->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
-    flush->pfd.revents = 0;
-
-    g_source_add_poll(m_eventSource, &source->pfd);
-    g_source_set_name(m_eventSource, "[WPE] Display");
-    g_source_set_priority(m_eventSource, G_PRIORITY_HIGH + 30);
-    g_source_set_can_recurse(m_eventSource, TRUE);
-    g_source_attach(m_eventSource, g_main_context_get_thread_default());
+        g_source_add_poll(m_eventSource, &source->pfd);
+        g_source_set_name(m_eventSource, "[WPE] Display");
+        g_source_set_priority(m_eventSource, G_PRIORITY_HIGH + 30);
+        g_source_set_can_recurse(m_eventSource, TRUE);
+        g_source_attach(m_eventSource, g_main_context_get_thread_default());
+    }
 }
 
 Display::~Display()
