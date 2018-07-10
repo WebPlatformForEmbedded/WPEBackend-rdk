@@ -28,6 +28,7 @@
 #define wpe_view_backend_wpeframework_display_h
 
 #include "ipc.h"
+#include "../input/KeyboardEventHandler.h"
 
 #include <assert.h>
 #include <wpe/input.h>
@@ -58,15 +59,10 @@ public:
     struct IKeyHandler {
         virtual ~IKeyHandler() {}
         virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) = 0;
+        virtual void Key (const uint32_t key, const Compositor::IDisplay::IKeyboard::state action) = 0;
     };
 
 public:
-    virtual uint32_t AddRef() const {
-        return (0);
-    }
-    virtual uint32_t Release() const {
-        return (0);
-    }
     KeyboardHandler (IKeyHandler* callback) : _callback(callback) {
         _xkb.context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
         _xkb.composeTable = xkb_compose_table_new_from_locale(_xkb.context, setlocale(LC_CTYPE, nullptr), XKB_COMPOSE_COMPILE_NO_FLAGS);
@@ -77,10 +73,17 @@ public:
     }
 
 public:
+    virtual uint32_t AddRef() const {
+        return (0);
+    }
+    virtual uint32_t Release() const {
+        return (0);
+    }
     virtual void KeyMap(const char information[], const uint16_t size) override;
     virtual void Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) override;
     virtual void Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) override;
     virtual void Repeat(int32_t rate, int32_t delay) override;
+    virtual void Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action) override;
 
     void RepeatKeyEvent();
     void RepeatDelayTimeout();
@@ -152,6 +155,7 @@ public:
 
 private: 
     virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
+    virtual void Key (const uint32_t key, const Compositor::IDisplay::IKeyboard::state action);
 
 private:
     IPC::Client& m_ipc;
@@ -159,6 +163,7 @@ private:
     KeyboardHandler m_keyboard;
     struct wpe_view_backend* m_backend;
     Compositor::IDisplay* m_display;
+    std::unique_ptr<WPE::Input::KeyboardEventHandler> m_keyboardEventHandler;
 };
 
 } // namespace WPEFramework

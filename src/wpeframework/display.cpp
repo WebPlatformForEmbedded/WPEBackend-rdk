@@ -117,6 +117,11 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
     _callback->Key(action == IKeyboard::pressed, keysym, unicode, _xkb.modifiers, time);
 }
 
+/* virtual */ void KeyboardHandler::Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action)
+{
+    _callback->Key(key, action);
+}
+
 /* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size) {
     _xkb.keymap = xkb_keymap_new_from_string(_xkb.context, information, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
@@ -135,7 +140,9 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 /* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
     // IDK.
     uint32_t actual_key = key + 8;
+    fprintf (stderr, "LINE: %d.\n", __LINE__); fflush(stderr);
     HandleKeyEvent(actual_key, action, time);
+    fprintf (stderr, "LINE: %d.\n", __LINE__); fflush(stderr);
 
     if (_repeatInfo.rate != 0) {
         if (action == IKeyboard::released && _repeatData.key == actual_key) {
@@ -188,6 +195,7 @@ Display::Display(IPC::Client& ipc)
     , m_keyboard(this)
     , m_backend(nullptr)
     , m_display(Compositor::IDisplay::Instance(std::string()))
+    , m_keyboardEventHandler(WPE::Input::KeyboardEventHandler::create())
 {
     int descriptor = m_display->FileDescriptor();
     EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
@@ -208,6 +216,20 @@ Display::Display(IPC::Client& ipc)
 
 Display::~Display()
 {
+}
+
+/* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
+     struct wpe_input_keyboard_event rawEvent{ time(nullptr), keycode, 0, !!actions, 0 };
+
+    // printf ("Sending out key: %d, %d, %d\n", rawEvent.time, rawEvent.keyCode, rawEvent.pressed);
+
+    WPE::Input::KeyboardEventHandler::Result result = m_keyboardEventHandler->handleKeyboardEvent(&rawEvent);
+
+    struct wpe_input_keyboard_event event{ rawEvent.time, std::get<0>(result), std::get<1>(result), rawEvent.pressed, std::get<2>(result) };
+    IPC::Message message;
+    message.messageCode = MsgType::KEYBOARD;
+    std::memcpy(message.messageData, &event, sizeof(event));
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
 /* virtual */ void Display::Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time)
