@@ -120,6 +120,8 @@ Backend::~Backend()
     NXPL_UnregisterNexusDisplayPlatform(nxplHandle);
 #ifdef BACKEND_BCM_NEXUS_NXCLIENT
     NxClient_Uninit();
+#else
+   NEXUS_Platform_Uninit();
 #endif
 }
 
@@ -151,7 +153,9 @@ EGLTarget::~EGLTarget()
 {
     ipcClient.deinitialize();
 
+#ifdef BACKEND_BCM_NEXUS_NXCLIENT
     NEXUS_SurfaceClient_Release(reinterpret_cast<NEXUS_SurfaceClient*>(nativeWindow));
+#endif
 }
 
 void EGLTarget::initialize(uint32_t width, uint32_t height)
