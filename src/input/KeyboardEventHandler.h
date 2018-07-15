@@ -30,7 +30,7 @@
 
 #include <memory>
 #include <tuple>
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 
 namespace WPE {
 

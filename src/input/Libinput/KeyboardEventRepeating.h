@@ -29,7 +29,7 @@
 #define WPE_Input_KeyboardEventRepeating_h
 
 #include <glib.h>
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 
 namespace WPE {
 
