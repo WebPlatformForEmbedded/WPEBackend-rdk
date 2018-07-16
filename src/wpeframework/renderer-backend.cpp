@@ -55,16 +55,7 @@ struct EGLTarget : public IPC::Client::Handler {
     Compositor::IDisplay::ISurface* surface;
 };
 
-EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
-    : target(target)
-    , ipcClient()
-    , display(ipcClient)
-{
-    ipcClient.initialize(*this, hostFd);
-}
-
-void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height)
-{
+static std::string DisplayName() {
     std::string name;
     const char* callsign (std::getenv("CLIENT_IDENTIFIER"));
 
@@ -80,8 +71,20 @@ void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uin
             name = std::string(callsign, (delimiter - callsign));
         }
     }
+    return (name);
+}
 
-    surface = display.Create(name, width, height);
+EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
+    : target(target)
+    , ipcClient()
+    , display(ipcClient, DisplayName())
+{
+    ipcClient.initialize(*this, hostFd);
+}
+
+void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height)
+{
+    surface = display.Create(DisplayName(), width, height);
     display.Backend(backend);
 }
 
@@ -125,7 +128,7 @@ struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_inte
     // get_native_display
     [](void* data) -> EGLNativeDisplayType
     {
-        return WPEFramework::Compositor::IDisplay::Instance(std::string())->Native();
+        return WPEFramework::Compositor::IDisplay::Instance(WPEFramework::DisplayName())->Native();
     }
 };
 

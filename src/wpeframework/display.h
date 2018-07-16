@@ -132,7 +132,7 @@ public:
     };
 
 public:
-    Display(IPC::Client& ipc);
+    Display(IPC::Client& ipc, const std::string& name);
     ~Display();
 
 public:

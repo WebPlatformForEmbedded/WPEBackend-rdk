@@ -140,9 +140,7 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 /* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
     // IDK.
     uint32_t actual_key = key + 8;
-    fprintf (stderr, "LINE: %d.\n", __LINE__); fflush(stderr);
     HandleKeyEvent(actual_key, action, time);
-    fprintf (stderr, "LINE: %d.\n", __LINE__); fflush(stderr);
 
     if (_repeatInfo.rate != 0) {
         if (action == IKeyboard::released && _repeatData.key == actual_key) {
@@ -189,12 +187,12 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
-Display::Display(IPC::Client& ipc)
+Display::Display(IPC::Client& ipc, const std::string& name)
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_backend(nullptr)
-    , m_display(Compositor::IDisplay::Instance(std::string()))
+    , m_display(Compositor::IDisplay::Instance(name))
     , m_keyboardEventHandler(WPE::Input::KeyboardEventHandler::create())
 {
     int descriptor = m_display->FileDescriptor();
