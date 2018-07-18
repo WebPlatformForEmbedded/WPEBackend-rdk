@@ -28,9 +28,11 @@
 #define wpe_view_backend_wpeframework_display_h
 
 #include "ipc.h"
+#include "../input/KeyboardEventHandler.h"
 
+#include <assert.h>
 #include <wpe/input.h>
-#include <wayland/Client.h>
+#include <compositor/Client.h>
 #include <xkbcommon/xkbcommon-compose.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -40,7 +42,7 @@ typedef struct _GSource GSource;
 
 namespace WPEFramework {
 
-class KeyboardHandler : public Wayland::Display::IKeyboard
+class KeyboardHandler : public Compositor::IDisplay::IKeyboard
 {
 private:
     KeyboardHandler () = delete;
@@ -57,6 +59,7 @@ public:
     struct IKeyHandler {
         virtual ~IKeyHandler() {}
         virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) = 0;
+        virtual void Key (const uint32_t key, const Compositor::IDisplay::IKeyboard::state action) = 0;
     };
 
 public:
@@ -70,10 +73,17 @@ public:
     }
 
 public:
+    virtual uint32_t AddRef() const {
+        return (0);
+    }
+    virtual uint32_t Release() const {
+        return (0);
+    }
     virtual void KeyMap(const char information[], const uint16_t size) override;
     virtual void Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) override;
     virtual void Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) override;
     virtual void Repeat(int32_t rate, int32_t delay) override;
+    virtual void Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action) override;
 
     void RepeatKeyEvent();
     void RepeatDelayTimeout();
@@ -122,13 +132,15 @@ public:
     };
 
 public:
-    Display(IPC::Client& ipc);
+    Display(IPC::Client& ipc, const std::string& name);
     ~Display();
 
 public:
-    inline Wayland::Display::Surface Create(const std::string& name, const uint32_t width, const uint32_t height) {
-        Wayland::Display::Surface newSurface = m_display.Create(name, width, height);
-        newSurface.Keyboard(&m_keyboard);
+   inline Compositor::IDisplay::ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height) {
+        Compositor::IDisplay::ISurface* newSurface = m_display->Create(name, width, height);
+        if (newSurface != nullptr) {
+            newSurface->Keyboard(&m_keyboard);
+        }
         return (newSurface);
     }
     inline void Backend(struct wpe_view_backend* backend) {
@@ -143,14 +155,15 @@ public:
 
 private: 
     virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
+    virtual void Key (const uint32_t key, const Compositor::IDisplay::IKeyboard::state action);
 
 private:
     IPC::Client& m_ipc;
     GSource* m_eventSource;
-    GSource* m_eventFlush;
     KeyboardHandler m_keyboard;
     struct wpe_view_backend* m_backend;
-    Wayland::Display& m_display;
+    Compositor::IDisplay* m_display;
+    std::unique_ptr<WPE::Input::KeyboardEventHandler> m_keyboardEventHandler;
 };
 
 } // namespace WPEFramework

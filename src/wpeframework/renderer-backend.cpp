@@ -32,6 +32,7 @@
 
 #include <chrono>
 #include <string>
+#include <string.h>
 
 namespace WPEFramework {
 
@@ -47,34 +48,50 @@ struct EGLTarget : public IPC::Client::Handler {
     IPC::Client ipcClient;
 
     EGLNativeWindowType Native() const {
-        return (surface.Native());
+        return (surface->Native());
     }
 
     Display display;
-    Wayland::Display::Surface surface;
+    Compositor::IDisplay::ISurface* surface;
 };
+
+static std::string DisplayName() {
+    std::string name;
+    const char* callsign (std::getenv("CLIENT_IDENTIFIER"));
+
+    if (callsign == nullptr) {
+         name = "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    }
+    else {
+        const char* delimiter = nullptr;
+        if ((delimiter = strchr(callsign, ',')) == nullptr) {
+            name = callsign;
+        }
+        else {
+            name = std::string(callsign, (delimiter - callsign));
+        }
+    }
+    return (name);
+}
 
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
     : target(target)
     , ipcClient()
-    , display(ipcClient)
+    , display(ipcClient, DisplayName())
 {
     ipcClient.initialize(*this, hostFd);
 }
 
 void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height)
 {
-    const char* callsign (std::getenv("CLIENT_IDENTIFIER"));
-
-    surface = display.Create((callsign == nullptr) ?
-            "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()) :
-                             callsign, width, height);
+    surface = display.Create(DisplayName(), width, height);
     display.Backend(backend);
 }
 
 EGLTarget::~EGLTarget()
 {
     ipcClient.deinitialize();
+    surface->Release();
 }
 
 void EGLTarget::handleMessage(char* data, size_t size)
@@ -111,7 +128,7 @@ struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_inte
     // get_native_display
     [](void* data) -> EGLNativeDisplayType
     {
-        return WPEFramework::Wayland::Display::Instance().Native();
+        return WPEFramework::Compositor::IDisplay::Instance(WPEFramework::DisplayName())->Native();
     }
 };
 

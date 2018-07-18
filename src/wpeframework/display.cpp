@@ -40,7 +40,7 @@ public:
 
     GSource source;
     GPollFD pfd;
-    Wayland::Display* display;
+    Compositor::IDisplay* display;
     signed int result;
 };
 
@@ -63,7 +63,7 @@ GSourceFuncs EventSource::sourceFuncs = {
         EventSource& source(*(reinterpret_cast<EventSource*>(base)));
 
         if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
-            fprintf(stderr, "Wayland::Display: error in wayland dispatch\n");
+            fprintf(stderr, "Compositor::Display: error in compositor dispatch\n");
             return G_SOURCE_REMOVE;
         }
 
@@ -115,6 +115,11 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 
     // Send the event, it is complete..
     _callback->Key(action == IKeyboard::pressed, keysym, unicode, _xkb.modifiers, time);
+}
+
+/* virtual */ void KeyboardHandler::Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action)
+{
+    _callback->Key(key, action);
 }
 
 /* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size) {
@@ -182,37 +187,47 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
-Display::Display(IPC::Client& ipc)
+Display::Display(IPC::Client& ipc, const std::string& name)
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
-    , m_eventFlush(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_backend(nullptr)
-    , m_display(Wayland::Display::Instance())
+    , m_display(Compositor::IDisplay::Instance(name))
+    , m_keyboardEventHandler(WPE::Input::KeyboardEventHandler::create())
 {
-
+    int descriptor = m_display->FileDescriptor();
     EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
-    EventSource* flush(reinterpret_cast<EventSource*>(m_eventFlush));
 
-    source->display = &m_display;
-    source->pfd.fd = m_display.FileDescriptor();
-    source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
-    source->pfd.revents = 0;
+    if (descriptor != -1) {
+        source->display = m_display;
+        source->pfd.fd = descriptor;
+        source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
+        source->pfd.revents = 0;
 
-    flush->display = &m_display;
-    flush->pfd.fd = m_display.FileDescriptor();
-    flush->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
-    flush->pfd.revents = 0;
-
-    g_source_add_poll(m_eventSource, &source->pfd);
-    g_source_set_name(m_eventSource, "[WPE] Display");
-    g_source_set_priority(m_eventSource, G_PRIORITY_HIGH + 30);
-    g_source_set_can_recurse(m_eventSource, TRUE);
-    g_source_attach(m_eventSource, g_main_context_get_thread_default());
+        g_source_add_poll(m_eventSource, &source->pfd);
+        g_source_set_name(m_eventSource, "[WPE] Display");
+        g_source_set_priority(m_eventSource, G_PRIORITY_HIGH + 30);
+        g_source_set_can_recurse(m_eventSource, TRUE);
+        g_source_attach(m_eventSource, g_main_context_get_thread_default());
+    }
 }
 
 Display::~Display()
 {
+}
+
+/* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
+     struct wpe_input_keyboard_event rawEvent{ time(nullptr), keycode, 0, !!actions, 0 };
+
+    // printf ("Sending out key: %d, %d, %d\n", rawEvent.time, rawEvent.keyCode, rawEvent.pressed);
+
+    WPE::Input::KeyboardEventHandler::Result result = m_keyboardEventHandler->handleKeyboardEvent(&rawEvent);
+
+    struct wpe_input_keyboard_event event{ rawEvent.time, std::get<0>(result), std::get<1>(result), rawEvent.pressed, std::get<2>(result) };
+    IPC::Message message;
+    message.messageCode = MsgType::KEYBOARD;
+    std::memcpy(message.messageData, &event, sizeof(event));
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
 /* virtual */ void Display::Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time)
