@@ -3,8 +3,6 @@
 
 #include <glib.h>
 #include <utility>
-#include <xkbcommon/xkbcommon-compose.h>
-#include <xkbcommon/xkbcommon.h>
 #include <wayland-client.h>
 #include <westeros-compositor.h>
 
@@ -39,19 +37,7 @@ public:
             std::pair<int, int> coords;
         } pointer { { 0, 0 } };
 
-        struct {
-            struct xkb_context* context;
-            struct xkb_keymap* keymap;
-            struct xkb_state* state;
-            struct {
-                xkb_mod_index_t control;
-                xkb_mod_index_t alt;
-                xkb_mod_index_t shift;
-            } indexes;
-            uint8_t modifiers;
-            struct xkb_compose_table* composeTable;
-            struct xkb_compose_state* composeState;
-        } xkb { nullptr, nullptr, nullptr, { 0, 0, 0 }, 0, nullptr, nullptr };
+        uint32_t modifiers { 0 };
 
         struct {
             int32_t rate;

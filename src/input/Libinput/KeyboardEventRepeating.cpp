@@ -47,12 +47,12 @@ KeyboardEventRepeating::~KeyboardEventRepeating()
     g_source_unref(m_source);
 }
 
-void KeyboardEventRepeating::schedule(struct wpe_input_keyboard_event* event)
+void KeyboardEventRepeating::schedule(uint32_t eventTime, uint32_t eventKey)
 {
-    if (!!m_event.time && m_event.time == event->time && m_event.keyCode == event->keyCode)
+    if (!!m_event.time && m_event.time == eventTime && m_event.keyCode == eventKey)
         return;
 
-    m_event = *event;
+    m_event = { eventTime, eventKey };
     g_source_set_ready_time(m_source, g_get_monotonic_time() + s_startupDelay);
 }
 
@@ -60,7 +60,7 @@ void KeyboardEventRepeating::cancel()
 {
     if (!!m_event.time)
         g_source_set_ready_time(m_source, -1);
-    m_event = { 0, 0, 0 };
+    m_event = { 0, 0 };
 }
 
 void KeyboardEventRepeating::dispatch()
@@ -70,7 +70,7 @@ void KeyboardEventRepeating::dispatch()
         return;
     }
 
-    m_client.dispatchKeyboardEvent(&m_event);
+    m_client.dispatchKeyboardEvent(m_event.time, m_event.keyCode);
     g_source_set_ready_time(m_source, g_get_monotonic_time() + s_repeatDelay);
 }
 

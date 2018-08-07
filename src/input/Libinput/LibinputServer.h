@@ -31,7 +31,7 @@
 #include "KeyboardEventRepeating.h"
 #include <glib.h>
 #include <memory>
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 #ifndef KEY_INPUT_HANDLING_VIRTUAL
 #include <libudev.h>
 #include <libinput.h>
@@ -42,10 +42,6 @@
 struct wpe_view_backend;
 
 namespace WPE {
-
-namespace Input {
-class KeyboardEventHandler;
-}
 
 class LibinputServer : public Input::KeyboardEventRepeating::Client {
 public:
@@ -68,12 +64,12 @@ private:
     LibinputServer();
     ~LibinputServer();
 
+    bool handleKeyboardEvent(uint32_t eventTime, uint32_t eventKey, uint32_t eventState);
 
     // Input::KeyboardEventRepeating::Client
-    void dispatchKeyboardEvent(struct wpe_input_keyboard_event*) override;
+    void dispatchKeyboardEvent(uint32_t eventTime, uint32_t eventKey) override;
 
     Client* m_client;
-    std::unique_ptr<Input::KeyboardEventHandler> m_keyboardEventHandler;
     std::unique_ptr<Input::KeyboardEventRepeating> m_keyboardEventRepeating;
 
     bool m_handlePointerEvents { false };

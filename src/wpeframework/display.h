@@ -28,13 +28,9 @@
 #define wpe_view_backend_wpeframework_display_h
 
 #include "ipc.h"
-#include "../input/KeyboardEventHandler.h"
-
 #include <assert.h>
-#include <wpe/input.h>
+#include <wpe/wpe.h>
 #include <compositor/Client.h>
-#include <xkbcommon/xkbcommon-compose.h>
-#include <xkbcommon/xkbcommon.h>
 
 struct wpe_view_backend;
 
@@ -64,10 +60,6 @@ public:
 
 public:
     KeyboardHandler (IKeyHandler* callback) : _callback(callback) {
-        _xkb.context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-        _xkb.composeTable = xkb_compose_table_new_from_locale(_xkb.context, setlocale(LC_CTYPE, nullptr), XKB_COMPOSE_COMPILE_NO_FLAGS);
-        if (_xkb.composeTable)
-            _xkb.composeState = xkb_compose_state_new(_xkb.composeTable, XKB_COMPOSE_STATE_NO_FLAGS);
     }
     virtual ~KeyboardHandler() {
     }
@@ -91,19 +83,7 @@ public:
 
 private:
     IKeyHandler* _callback;
-    struct {
-        struct xkb_context* context;
-        struct xkb_keymap* keymap;
-        struct xkb_state* state;
-        struct {
-            xkb_mod_index_t control;
-            xkb_mod_index_t alt;
-            xkb_mod_index_t shift;
-        } indexes;
-        uint8_t modifiers;
-        struct xkb_compose_table* composeTable;
-        struct xkb_compose_state* composeState;
-    } _xkb { nullptr, nullptr, nullptr, { 0, 0, 0 }, 0, nullptr, nullptr };
+    uint32_t _modifiers;
     struct {
         int32_t rate;
         int32_t delay;
@@ -163,7 +143,6 @@ private:
     KeyboardHandler m_keyboard;
     struct wpe_view_backend* m_backend;
     Compositor::IDisplay* m_display;
-    std::unique_ptr<WPE::Input::KeyboardEventHandler> m_keyboardEventHandler;
 };
 
 } // namespace WPEFramework

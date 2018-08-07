@@ -24,8 +24,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wpe/input.h>
-#include <wpe/view-backend.h>
 #include "display.h"
 #include <cstring>
 
@@ -102,19 +100,12 @@ void KeyboardHandler::RepeatDelayTimeout() {
 }
 
 void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
-    uint32_t keysym = xkb_state_key_get_one_sym(_xkb.state, key);
-    uint32_t unicode = xkb_state_key_get_utf32(_xkb.state, key);
-
-    if (_xkb.composeState
-        && action == IKeyboard::pressed
-        && xkb_compose_state_feed(_xkb.composeState, keysym) == XKB_COMPOSE_FEED_ACCEPTED
-        && xkb_compose_state_get_status(_xkb.composeState) == XKB_COMPOSE_COMPOSED) {
-        keysym = xkb_compose_state_get_one_sym(_xkb.composeState);
-        unicode = xkb_keysym_to_utf32(keysym);
-    }
+    uint32_t keysym = wpe_input_xkb_context_get_key_code(wpe_input_xkb_context_get_default(), key, action == IKeyboard::pressed);
+    if (!keysym)
+	return;
 
     // Send the event, it is complete..
-    _callback->Key(action == IKeyboard::pressed, keysym, unicode, _xkb.modifiers, time);
+    _callback->Key(action == IKeyboard::pressed, keysym, key, _modifiers, time);
 }
 
 /* virtual */ void KeyboardHandler::Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action)
@@ -123,24 +114,18 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 }
 
 /* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size) {
-    _xkb.keymap = xkb_keymap_new_from_string(_xkb.context, information, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-
-    if (!_xkb.keymap)
-        return;
-
-    _xkb.state = xkb_state_new(_xkb.keymap);
-    if (!_xkb.state)
-        return;
-
-    _xkb.indexes.control = xkb_keymap_mod_get_index(_xkb.keymap, XKB_MOD_NAME_CTRL);
-    _xkb.indexes.alt = xkb_keymap_mod_get_index(_xkb.keymap, XKB_MOD_NAME_ALT);
-    _xkb.indexes.shift = xkb_keymap_mod_get_index(_xkb.keymap, XKB_MOD_NAME_SHIFT);
+    auto* xkb = wpe_input_xkb_context_get_default();
+    auto* keymap = xkb_keymap_new_from_string(wpe_input_xkb_context_get_context(xkb), information, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    wpe_input_xkb_context_set_keymap(xkb, keymap);
+    xkb_keymap_unref(keymap);
 }
 
 /* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
     // IDK.
     uint32_t actual_key = key + 8;
     HandleKeyEvent(actual_key, action, time);
+
+    auto* keymap = wpe_input_xkb_context_get_keymap(wpe_input_xkb_context_get_default());
 
     if (_repeatInfo.rate != 0) {
         if (action == IKeyboard::released && _repeatData.key == actual_key) {
@@ -149,7 +134,7 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
             _repeatData = { 0, 0, IKeyboard::released, 0 };
         }
         else if (action == IKeyboard::pressed
-            && xkb_keymap_key_repeats(_xkb.keymap, actual_key)) {
+            && keymap && xkb_keymap_key_repeats(keymap, actual_key)) {
 
             if (_repeatData.eventSource)
                 g_source_remove(_repeatData.eventSource);
@@ -160,16 +145,7 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 }
 
 /* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
-    xkb_state_update_mask(_xkb.state, depressedMods, latchedMods, lockedMods, 0, 0, group);
-
-    _xkb.modifiers = 0;
-    auto component = static_cast<xkb_state_component>(XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LATCHED);
-    if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.control, component))
-        _xkb.modifiers |= control;
-    if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.alt, component))
-        _xkb.modifiers |= alternate;
-    if (xkb_state_mod_index_is_active(_xkb.state, _xkb.indexes.shift, component))
-        _xkb.modifiers |= shift;
+    _modifiers = wpe_input_xkb_context_get_modifiers(wpe_input_xkb_context_get_default(), depressedMods, latchedMods, lockedMods, group);
 }
 
 /* virtual */ void KeyboardHandler::Repeat(int32_t rate, int32_t delay) {
@@ -193,7 +169,6 @@ Display::Display(IPC::Client& ipc, const std::string& name)
     , m_keyboard(this)
     , m_backend(nullptr)
     , m_display(Compositor::IDisplay::Instance(name))
-    , m_keyboardEventHandler(WPE::Input::KeyboardEventHandler::create())
 {
     int descriptor = m_display->FileDescriptor();
     EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
@@ -217,30 +192,29 @@ Display::~Display()
 }
 
 /* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
-     struct wpe_input_keyboard_event rawEvent{ time(nullptr), keycode, 0, !!actions, 0 };
+    uint32_t actual_key = key + 8;
 
-    // printf ("Sending out key: %d, %d, %d\n", rawEvent.time, rawEvent.keyCode, rawEvent.pressed);
-
-    WPE::Input::KeyboardEventHandler::Result result = m_keyboardEventHandler->handleKeyboardEvent(&rawEvent);
-
-    struct wpe_input_keyboard_event event{ rawEvent.time, std::get<0>(result), std::get<1>(result), rawEvent.pressed, std::get<2>(result) };
+    auto* xkb = wpe_input_xkb_context_get_default();
+    uint32_t keysym = wpe_input_xkb_context_get_key_code(xkb, actual_key, !!actions);
+    if (!keysym)
+        return;
+    auto* xkbState = wpe_input_xkb_context_get_state(xkb);
+    xkb_state_update_key(xkbState, actual_key, !!actions);
+    uint32_t modifiers = wpe_input_xkb_context_get_modifiers(xkb,
+        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_DEPRESSED),
+        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LATCHED),
+        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LOCKED),
+        xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE));
+    struct wpe_input_keyboard_event event{ time(nullptr), keysym, actual_key, !!actions, modifiers };
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
     std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
-/* virtual */ void Display::Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time)
+/* virtual */ void Display::Key(const bool pressed, uint32_t keycode, uint32_t hardware_keycode, uint32_t modifiers, uint32_t time)
 {
-    uint8_t wpe_modifiers = 0;
-    if ((modifiers & KeyboardHandler::control) != 0)
-        wpe_modifiers |= wpe_input_keyboard_modifier_control;
-    if ((modifiers & KeyboardHandler::alternate) != 0)
-        wpe_modifiers |= wpe_input_keyboard_modifier_alt;
-    if ((modifiers & KeyboardHandler::shift) != 0)
-        wpe_modifiers |= wpe_input_keyboard_modifier_shift;
-
-    struct wpe_input_keyboard_event event = { time, keycode, unicode, pressed, wpe_modifiers };
+    struct wpe_input_keyboard_event event = { time, keycode, hardware_keycode, pressed, modifiers };
 
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;

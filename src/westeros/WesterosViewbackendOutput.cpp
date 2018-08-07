@@ -8,7 +8,7 @@
 #include <locale.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <wpe/view-backend.h>
+#include <wpe/wpe.h>
 
 namespace Westeros {
 

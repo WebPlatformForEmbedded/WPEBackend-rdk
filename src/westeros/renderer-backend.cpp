@@ -27,7 +27,7 @@
 
 #define WL_EGL_PLATFORM 1
 
-#include <wpe/renderer-backend-egl.h>
+#include <wpe/wpe-egl.h>
 
 #include <stdio.h>
 #include <cstring>
