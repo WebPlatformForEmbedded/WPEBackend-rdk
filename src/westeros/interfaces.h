@@ -28,8 +28,8 @@
 #ifndef westeros_interfaces_h
 #define westeros_interfaces_h
 
-#include <wpe/renderer-backend-egl.h>
-#include <wpe/view-backend.h>
+#include <wpe/wpe.h>
+#include <wpe/wpe-egl.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -27,12 +27,10 @@
 
 #include "LibinputServer.h"
 
-#include "KeyboardEventHandler.h"
 #include "KeyboardEventRepeating.h"
 #include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
-#include <wpe/view-backend.h>
 
 namespace WPE {
 
@@ -68,17 +66,30 @@ static void VirtualKeyboardCallback(actiontype type , unsigned int code)
 
 void LibinputServer::VirtualInput (unsigned int type, unsigned int code)
 {
-    struct wpe_input_keyboard_event rawEvent{ time(nullptr), code, 0, !!type, 0 };
-
-    // printf ("Sending out key: %d, %d, %d\n", rawEvent.time, rawEvent.keyCode, rawEvent.pressed);
-
-    Input::KeyboardEventHandler::Result result = m_keyboardEventHandler->handleKeyboardEvent(&rawEvent);
-
-    struct wpe_input_keyboard_event event{ rawEvent.time, std::get<0>(result), std::get<1>(result), rawEvent.pressed, std::get<2>(result) };
-    m_client->handleKeyboardEvent(&event);
+    handleKeyboardEvent(time(nullptr), code + 8, type);
 }
 
 #endif
+
+bool LibinputServer::handleKeyboardEvent(uint32_t eventTime, uint32_t code, uint32_t state)
+{
+    auto* xkb = wpe_input_xkb_context_get_default();
+    uint32_t keysym = wpe_input_xkb_context_get_key_code(xkb, code, !!state);
+    if (!keysym)
+	return false;
+
+    auto* xkbState = wpe_input_xkb_context_get_state(xkb);
+    xkb_state_update_key(xkbState, code, !!state ? XKB_KEY_DOWN : XKB_KEY_UP);
+    uint32_t modifiers = wpe_input_xkb_context_get_modifiers(xkb,
+        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_DEPRESSED),
+        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LATCHED),
+        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LOCKED),
+        xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE));
+    struct wpe_input_keyboard_event event{ eventTime, keysym, code, !!state, modifiers };
+    m_client->handleKeyboardEvent(&event);
+
+    return true;
+}
 
 LibinputServer& LibinputServer::singleton()
 {
@@ -87,8 +98,7 @@ LibinputServer& LibinputServer::singleton()
 }
 
 LibinputServer::LibinputServer()
-    : m_keyboardEventHandler(Input::KeyboardEventHandler::create())
-    , m_keyboardEventRepeating(new Input::KeyboardEventRepeating(*this))
+    : m_keyboardEventRepeating(new Input::KeyboardEventRepeating(*this))
     , m_pointerCoords(0, 0)
     , m_pointerBounds(1, 1)
 #ifndef KEY_INPUT_HANDLING_VIRTUAL
@@ -203,21 +213,16 @@ void LibinputServer::processEvents()
         {
             auto* keyEvent = libinput_event_get_keyboard_event(event);
 
-            struct wpe_input_keyboard_event rawEvent{
-                libinput_event_keyboard_get_time(keyEvent),
-                libinput_event_keyboard_get_key(keyEvent), 0,
-                !!libinput_event_keyboard_get_key_state(keyEvent), 0
-            };
-            Input::KeyboardEventHandler::Result result = m_keyboardEventHandler->handleKeyboardEvent(&rawEvent);
+            auto eventTime = libinput_event_keyboard_get_time(keyEvent);
+            auto eventKey = libinput_event_keyboard_get_key(keyEvent) + 8;
+            auto eventState = libinput_event_keyboard_get_key_state(keyEvent);
 
-            struct wpe_input_keyboard_event event{ rawEvent.time, std::get<0>(result), std::get<1>(result), rawEvent.pressed, std::get<2>(result) };
-            m_client->handleKeyboardEvent(&event);
-
-            if (rawEvent.pressed)
-                m_keyboardEventRepeating->schedule(&rawEvent);
-            else
-                m_keyboardEventRepeating->cancel();
-
+            if (handleKeyboardEvent(eventTime, eventKey, eventState)) {
+                if (!!eventState)
+                    m_keyboardEventRepeating->schedule(eventTime, eventKey);
+                else
+                    m_keyboardEventRepeating->cancel();
+            }
             break;
         }
         case LIBINPUT_EVENT_POINTER_MOTION:
@@ -235,7 +240,7 @@ void LibinputServer::processEvents()
             struct wpe_input_pointer_event event{
                 wpe_input_pointer_event_type_motion,
                 libinput_event_pointer_get_time(pointerEvent),
-                m_pointerCoords.first, m_pointerCoords.second, 0, 0
+                m_pointerCoords.first, m_pointerCoords.second, 0, 0, 0
             };
             m_client->handlePointerEvent(&event);
             break;
@@ -251,7 +256,8 @@ void LibinputServer::processEvents()
                 libinput_event_pointer_get_time(pointerEvent),
                 m_pointerCoords.first, m_pointerCoords.second,
                 libinput_event_pointer_get_button(pointerEvent),
-                libinput_event_pointer_get_button_state(pointerEvent)
+                libinput_event_pointer_get_button_state(pointerEvent),
+                0
             };
             m_client->handlePointerEvent(&event);
             break;
@@ -275,7 +281,7 @@ void LibinputServer::processEvents()
                     wpe_input_axis_event_type_motion,
                     libinput_event_pointer_get_time(pointerEvent),
                     m_pointerCoords.first, m_pointerCoords.second,
-                    axis, -axisValue
+                    axis, -axisValue, 0
                 };
                 m_client->handleAxisEvent(&event);
             }
@@ -288,7 +294,7 @@ void LibinputServer::processEvents()
                     wpe_input_axis_event_type_motion,
                     libinput_event_pointer_get_time(pointerEvent),
                     m_pointerCoords.first, m_pointerCoords.second,
-                    axis, axisValue
+                    axis, axisValue, 0
                 };
                 m_client->handleAxisEvent(&event);
             }
@@ -321,7 +327,7 @@ void LibinputServer::handleTouchEvent(struct libinput_event *event, enum wpe_inp
     }
     targetPoint = { type, time, id, x, y };
 
-    struct wpe_input_touch_event dispatchedEvent{ m_touchEvents.data(), m_touchEvents.size(), type, id, time };
+    struct wpe_input_touch_event dispatchedEvent{ m_touchEvents.data(), m_touchEvents.size(), type, id, time, 0 };
     m_client->handleTouchEvent(&dispatchedEvent);
 
     if (type == wpe_input_touch_event_type_up) {
@@ -359,11 +365,11 @@ GSourceFuncs LibinputServer::EventSource::s_sourceFuncs = {
 
 #endif
 
-void LibinputServer::dispatchKeyboardEvent(struct wpe_input_keyboard_event* event)
+void LibinputServer::dispatchKeyboardEvent(uint32_t eventTime, uint32_t eventKey)
 {
-    Input::KeyboardEventHandler::Result result = m_keyboardEventHandler->handleKeyboardEvent(event);
-    struct wpe_input_keyboard_event newEvent{ event->time, std::get<0>(result), std::get<1>(result), event->pressed, std::get<2>(result) };
-    m_client->handleKeyboardEvent(&newEvent);
+#ifndef KEY_INPUT_HANDLING_VIRTUAL
+    handleKeyboardEvent(eventTime, eventKey, LIBINPUT_KEY_STATE_PRESSED);
+#endif
 }
 
 } // namespace WPE

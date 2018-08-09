@@ -25,11 +25,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wpe/loader.h>
+#include <wpe/wpe.h>
 
 #include <cstdio>
 #include <cstring>
-#include <wpe/renderer-host.h>
 
 #ifdef BACKEND_BCM_NEXUS
 #include "bcm-nexus/interfaces.h"
@@ -61,14 +60,6 @@
 
 #ifdef BACKEND_WPEFRAMEWORK
 #include "wpeframework/interfaces.h"
-#endif
-
-#ifdef KEY_INPUT_HANDLING_XKB
-#include "input/XKB/input-libxkbcommon.h"
-#endif
-
-#ifdef KEY_INPUT_HANDLING_LINUX_INPUT
-#include "input/LinuxInput/input-linuxinput.h"
 #endif
 
 extern "C" {
@@ -191,16 +182,6 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
             return &wpeframework_view_backend_interface;
-#endif
-
-#ifdef KEY_INPUT_HANDLING_XKB
-        if (!std::strcmp(object_name, "_wpe_input_key_mapper_interface"))
-            return &libxkbcommon_input_key_mapper_interface;
-#endif
-
-#ifdef KEY_INPUT_HANDLING_LINUX_INPUT
-        if (!std::strcmp(object_name, "_wpe_input_key_mapper_interface"))
-            return &linuxinput_input_key_mapper_interface;
 #endif
 
         return nullptr;

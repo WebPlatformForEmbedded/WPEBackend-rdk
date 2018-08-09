@@ -25,7 +25,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wpe/view-backend.h>
+#include <wpe/wpe.h>
 
 #ifdef KEY_INPUT_HANDLING_LIBINPUT
 #include "Libinput/LibinputServer.h"

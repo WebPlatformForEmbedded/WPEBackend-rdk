@@ -29,7 +29,7 @@
 #define WPE_Input_KeyboardEventRepeating_h
 
 #include <glib.h>
-#include <wpe/input.h>
+#include <stdint.h>
 
 namespace WPE {
 
@@ -39,13 +39,13 @@ class KeyboardEventRepeating {
 public:
     class Client {
     public:
-        virtual void dispatchKeyboardEvent(struct wpe_input_keyboard_event*) = 0;
+        virtual void dispatchKeyboardEvent(uint32_t eventTime, uint32_t eventKey) = 0;
     };
 
     KeyboardEventRepeating(Client&);
     ~KeyboardEventRepeating();
 
-    void schedule(struct wpe_input_keyboard_event*);
+    void schedule(uint32_t eventTime, uint32_t eventKey);
     void cancel();
 
 private:
@@ -57,7 +57,10 @@ private:
 
     Client& m_client;
     GSource* m_source;
-    struct wpe_input_keyboard_event m_event { 0, };
+    struct {
+        uint32_t time { 0 };
+        uint32_t keyCode { 0 };
+    } m_event;
 };
 
 } // namespace Input

@@ -41,8 +41,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <wayland-client.h>
-#include <wpe/input.h>
-#include <wpe/view-backend.h>
 
 namespace Wayland {
 
@@ -150,6 +148,15 @@ static const struct xdg_shell_listener g_xdgShellListener = {
     },
 };
 
+static uint32_t
+getModifiers(Display::SeatData& seatData)
+{
+    uint32_t mask = seatData.keyboard.modifiers;
+    if (seatData.pointer.object)
+        mask |= seatData.pointer.modifiers;
+    return mask;
+}
+
 static const struct wl_pointer_listener g_pointerListener = {
     // enter
     [](void* data, struct wl_pointer*, uint32_t serial, struct wl_surface* surface, wl_fixed_t, wl_fixed_t)
@@ -175,10 +182,11 @@ static const struct wl_pointer_listener g_pointerListener = {
         auto x = wl_fixed_to_int(fixedX);
         auto y = wl_fixed_to_int(fixedY);
 
-        auto& pointer = static_cast<Display::SeatData*>(data)->pointer;
+        auto& seatData = *static_cast<Display::SeatData*>(data);
+        auto& pointer = seatData.pointer;
         pointer.coords = { x, y };
 
-        struct wpe_input_pointer_event event = { wpe_input_pointer_event_type_motion, time, x, y, pointer.button, pointer.state };
+        struct wpe_input_pointer_event event = { wpe_input_pointer_event_type_motion, time, x, y, pointer.button, pointer.state, getModifiers(seatData) };
         EventDispatcher::singleton().sendEvent( event );
 
         if (pointer.target.first) {
@@ -189,20 +197,47 @@ static const struct wl_pointer_listener g_pointerListener = {
     // button
     [](void* data, struct wl_pointer*, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
     {
-        static_cast<Display::SeatData*>(data)->serial = serial;
+        auto& seatData = *static_cast<Display::SeatData*>(data);
+        seatData.serial = serial;
 
         if (button >= BTN_MOUSE)
             button = button - BTN_MOUSE + 1;
         else
             button = 0;
 
-        auto& pointer = static_cast<Display::SeatData*>(data)->pointer;
+        auto& pointer = seatData.pointer;
         auto& coords = pointer.coords;
 
         pointer.button = !!state ? button : 0;
         pointer.state = state;
 
-        struct wpe_input_pointer_event event = { wpe_input_pointer_event_type_button, time, coords.first, coords.second, button, state };
+        uint32_t modifier = 0;
+        switch (button) {
+        case 1:
+            modifier = wpe_input_pointer_modifier_button1;
+            break;
+        case 2:
+            modifier = wpe_input_pointer_modifier_button2;
+            break;
+        case 3:
+	    modifier = wpe_input_pointer_modifier_button3;
+            break;
+        case 4:
+            modifier = wpe_input_pointer_modifier_button4;
+            break;
+        case 5:
+            modifier = wpe_input_pointer_modifier_button5;
+            break;
+        default:
+            break;
+        }
+
+	if (state)
+            seatData.pointer.modifiers |= modifier;
+        else
+            seatData.pointer.modifiers &= ~modifier;
+
+        struct wpe_input_pointer_event event = { wpe_input_pointer_event_type_button, time, coords.first, coords.second, button, state, getModifiers(seatData) };
         EventDispatcher::singleton().sendEvent( event );
 
         if (pointer.target.first) {
@@ -213,10 +248,11 @@ static const struct wl_pointer_listener g_pointerListener = {
     // axis
     [](void* data, struct wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value)
     {
-        auto& pointer = static_cast<Display::SeatData*>(data)->pointer;
+        auto& seatData = *static_cast<Display::SeatData*>(data);
+        auto& pointer = seatData.pointer;
         auto& coords = pointer.coords;
 
-        struct wpe_input_axis_event event = { wpe_input_axis_event_type_motion, time, coords.first, coords.second, axis, -wl_fixed_to_int(value) };
+        struct wpe_input_axis_event event = { wpe_input_axis_event_type_motion, time, coords.first, coords.second, axis, -wl_fixed_to_int(value), getModifiers(seatData) };
         EventDispatcher::singleton().sendEvent( event );
 
         if (pointer.target.first) {
@@ -229,20 +265,11 @@ static const struct wl_pointer_listener g_pointerListener = {
 static void
 handleKeyEvent(Display::SeatData& seatData, uint32_t key, uint32_t state, uint32_t time)
 {
-    auto& xkb = seatData.xkb;
-    uint32_t keysym = xkb_state_key_get_one_sym(xkb.state, key);
-    uint32_t unicode = xkb_state_key_get_utf32(xkb.state, key);
+    uint32_t keysym = wpe_input_xkb_context_get_key_code(wpe_input_xkb_context_get_default(), key, state == WL_KEYBOARD_KEY_STATE_PRESSED);
+    if (!keysym)
+	return;
 
-    if (xkb.composeState
-        && state == WL_KEYBOARD_KEY_STATE_PRESSED
-        && xkb_compose_state_feed(xkb.composeState, keysym) == XKB_COMPOSE_FEED_ACCEPTED
-        && xkb_compose_state_get_status(xkb.composeState) == XKB_COMPOSE_COMPOSED)
-    {
-        keysym = xkb_compose_state_get_one_sym(xkb.composeState);
-        unicode = xkb_keysym_to_utf32(keysym);
-    }
-
-    struct wpe_input_keyboard_event event = { time, keysym, unicode, !!state, xkb.modifiers };
+    struct wpe_input_keyboard_event event = { time, keysym, key, !!state, getModifiers(seatData) };
     EventDispatcher::singleton().sendEvent( event );
 
     if (seatData.keyboard.target.first) {
@@ -283,22 +310,14 @@ static const struct wl_keyboard_listener g_keyboardListener = {
             return;
         }
 
-        auto& xkb = static_cast<Display::SeatData*>(data)->xkb;
-        xkb.keymap = xkb_keymap_new_from_string(xkb.context, static_cast<char*>(mapping),
+        auto* xkb = wpe_input_xkb_context_get_default();
+        auto* keymap = xkb_keymap_new_from_string(wpe_input_xkb_context_get_context(xkb), static_cast<char*>(mapping),
             XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
         munmap(mapping, size);
-        close(fd);
+	close(fd);
 
-        if (!xkb.keymap)
-            return;
-
-        xkb.state = xkb_state_new(xkb.keymap);
-        if (!xkb.state)
-            return;
-
-        xkb.indexes.control = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_CTRL);
-        xkb.indexes.alt = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_ALT);
-        xkb.indexes.shift = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_SHIFT);
+        wpe_input_xkb_context_set_keymap(xkb, keymap);
+        xkb_keymap_unref(keymap);
     },
     // enter
     [](void* data, struct wl_keyboard*, uint32_t serial, struct wl_surface* surface, struct wl_array*)
@@ -330,13 +349,15 @@ static const struct wl_keyboard_listener g_keyboardListener = {
         if (!seatData.repeatInfo.rate)
             return;
 
+        auto* keymap = wpe_input_xkb_context_get_keymap(wpe_input_xkb_context_get_default());
+
         if (state == WL_KEYBOARD_KEY_STATE_RELEASED
             && seatData.repeatData.key == key) {
             if (seatData.repeatData.eventSource)
                 g_source_remove(seatData.repeatData.eventSource);
             seatData.repeatData = { 0, 0, 0, 0 };
         } else if (state == WL_KEYBOARD_KEY_STATE_PRESSED
-            && xkb_keymap_key_repeats(seatData.xkb.keymap, key)) {
+            && keymap && xkb_keymap_key_repeats(keymap, key)) {
 
             if (seatData.repeatData.eventSource)
                 g_source_remove(seatData.repeatData.eventSource);
@@ -347,19 +368,9 @@ static const struct wl_keyboard_listener g_keyboardListener = {
     // modifiers
     [](void* data, struct wl_keyboard*, uint32_t serial, uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group)
     {
-        static_cast<Display::SeatData*>(data)->serial = serial;
-        auto& xkb = static_cast<Display::SeatData*>(data)->xkb;
-        xkb_state_update_mask(xkb.state, depressedMods, latchedMods, lockedMods, 0, 0, group);
-
-        auto& modifiers = xkb.modifiers;
-        modifiers = 0;
-        auto component = static_cast<xkb_state_component>(XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LATCHED);
-        if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.control, component))
-            modifiers |= wpe_input_keyboard_modifier_control;
-        if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.alt, component))
-            modifiers |= wpe_input_keyboard_modifier_alt;
-        if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.shift, component))
-            modifiers |= wpe_input_keyboard_modifier_shift;
+        auto& seatData = *static_cast<Display::SeatData*>(data);
+        seatData.serial = serial;
+        seatData.keyboard.modifiers = wpe_input_xkb_context_get_modifiers(wpe_input_xkb_context_get_default(), depressedMods, latchedMods, lockedMods, group);
     },
     // repeat_info
     [](void* data, struct wl_keyboard*, int32_t rate, int32_t delay)
@@ -402,7 +413,7 @@ static const struct wl_touch_listener g_touchListener = {
             EventDispatcher::singleton().sendEvent( event_touch_simple );
         } else {
             target = { surface, it->second };
-            struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_down, id, time };
+            struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_down, id, time, getModifiers(seatData) };
             struct wpe_view_backend* backend = target.second;
             wpe_view_backend_dispatch_touch_event(backend, &event);
         }
@@ -423,7 +434,7 @@ static const struct wl_touch_listener g_touchListener = {
 
         if (target.first && target.second) {
             point = { wpe_input_touch_event_type_up, time, id, point.x, point.y };
-            struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_up, id, time };
+            struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_up, id, time, getModifiers(seatData) };
 
             struct wpe_view_backend* backend = target.second;
             wpe_view_backend_dispatch_touch_event(backend, &event);
@@ -450,7 +461,7 @@ static const struct wl_touch_listener g_touchListener = {
         auto& target = seatData.touch.targets[id];
 
         if (target.first && target.second) {
-            struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_motion, id, time };
+            struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_motion, id, time, getModifiers(seatData) };
             struct wpe_view_backend* backend = target.second;
             wpe_view_backend_dispatch_touch_event(backend, &event);
         } else {
@@ -551,11 +562,6 @@ Display::Display()
 
     if ( m_interfaces.seat )
         wl_seat_add_listener(m_interfaces.seat, &g_seatListener, &m_seatData);
-
-    m_seatData.xkb.context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    m_seatData.xkb.composeTable = xkb_compose_table_new_from_locale(m_seatData.xkb.context, setlocale(LC_CTYPE, nullptr), XKB_COMPOSE_COMPILE_NO_FLAGS);
-    if (m_seatData.xkb.composeTable)
-        m_seatData.xkb.composeState = xkb_compose_state_new(m_seatData.xkb.composeTable, XKB_COMPOSE_STATE_NO_FLAGS);
 }
 
 Display::~Display()
@@ -599,16 +605,6 @@ Display::~Display()
         wl_keyboard_destroy(m_seatData.keyboard.object);
     if (m_seatData.touch.object)
         wl_touch_destroy(m_seatData.touch.object);
-    if (m_seatData.xkb.context)
-        xkb_context_unref(m_seatData.xkb.context);
-    if (m_seatData.xkb.keymap)
-        xkb_keymap_unref(m_seatData.xkb.keymap);
-    if (m_seatData.xkb.state)
-        xkb_state_unref(m_seatData.xkb.state);
-    if (m_seatData.xkb.composeTable)
-        xkb_compose_table_unref(m_seatData.xkb.composeTable);
-    if (m_seatData.xkb.composeState)
-        xkb_compose_state_unref(m_seatData.xkb.composeState);
     if (m_seatData.repeatData.eventSource)
         g_source_remove(m_seatData.repeatData.eventSource);
     m_seatData = SeatData{ };

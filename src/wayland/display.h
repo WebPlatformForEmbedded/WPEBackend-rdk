@@ -30,9 +30,7 @@
 #include <array>
 #include <unordered_map>
 #include <utility>
-#include <wpe/input.h>
-#include <xkbcommon/xkbcommon-compose.h>
-#include <xkbcommon/xkbcommon.h>
+#include <wpe/wpe.h>
 #include "ipc.h"
 
 struct wpe_view_backend;
@@ -107,30 +105,18 @@ public:
             std::pair<int, int> coords;
             uint32_t button;
             uint32_t state;
+            uint32_t modifiers;
         } pointer { nullptr, { }, { 0, 0 }, 0, 0 };
         struct {
             struct wl_keyboard* object;
             std::pair<struct wl_surface*, struct wpe_view_backend*> target;
-        } keyboard { nullptr, { } };
+            uint32_t modifiers;
+        } keyboard { nullptr, { }, 0 };
         struct {
             struct wl_touch* object;
             std::array<std::pair<struct wl_surface*, struct wpe_view_backend*>, 10> targets;
             std::array<struct wpe_input_touch_event_raw, 10> touchPoints;
         } touch { nullptr, { }, { } };
-
-        struct {
-            struct xkb_context* context;
-            struct xkb_keymap* keymap;
-            struct xkb_state* state;
-            struct {
-                xkb_mod_index_t control;
-                xkb_mod_index_t alt;
-                xkb_mod_index_t shift;
-            } indexes;
-            uint8_t modifiers;
-            struct xkb_compose_table* composeTable;
-            struct xkb_compose_state* composeState;
-        } xkb { nullptr, nullptr, nullptr, { 0, 0, 0 }, 0, nullptr, nullptr };
 
         struct {
             int32_t rate;

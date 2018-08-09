@@ -7,8 +7,7 @@
 #include <locale.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include <wpe/input.h>
-#include <wpe/view-backend.h>
+#include <wpe/wpe.h>
 
 namespace Westeros {
 
@@ -45,22 +44,14 @@ void WesterosViewbackendInput::keyboardHandleKeyMap( void *userData, uint32_t fo
         return;
     }
 
-    auto& xkb = handlerData.xkb;
-    xkb.keymap = xkb_keymap_new_from_string(xkb.context, static_cast<char*>(mapping),
+    auto* xkb = wpe_input_xkb_context_get_default();
+    auto* keymap = xkb_keymap_new_from_string(wpe_input_xkb_context_get_context(xkb), static_cast<char*>(mapping),
         XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
     munmap(mapping, size);
     close(fd);
 
-    if (!xkb.keymap)
-        return;
-
-    xkb.state = xkb_state_new(xkb.keymap);
-    if (!xkb.state)
-        return;
-
-    xkb.indexes.control = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_CTRL);
-    xkb.indexes.alt = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_ALT);
-    xkb.indexes.shift = xkb_keymap_mod_get_index(xkb.keymap, XKB_MOD_NAME_SHIFT);
+    wpe_input_xkb_context_set_keymap(xkb, keymap);
+    xkb_keymap_unref(keymap);
 }
 
 void WesterosViewbackendInput::keyboardHandleEnter( void *userData, struct wl_array *keys )
@@ -84,13 +75,15 @@ void WesterosViewbackendInput::keyboardHandleKey( void *userData, uint32_t time,
     if (!handlerData.repeatInfo.rate)
         return;
 
+    auto* keymap = wpe_input_xkb_context_get_keymap(wpe_input_xkb_context_get_default());
+
     if (state == WL_KEYBOARD_KEY_STATE_RELEASED
         && handlerData.repeatData.key == key) {
         if (handlerData.repeatData.eventSource)
             g_source_remove(handlerData.repeatData.eventSource);
         handlerData.repeatData = { 0, 0, 0, 0 };
     } else if (state == WL_KEYBOARD_KEY_STATE_PRESSED
-        && xkb_keymap_key_repeats(handlerData.xkb.keymap, key)) {
+        && keymap && xkb_keymap_key_repeats(keymap, key)) {
 
         if (handlerData.repeatData.eventSource)
             g_source_remove(handlerData.repeatData.eventSource);
@@ -104,18 +97,7 @@ void WesterosViewbackendInput::keyboardHandleModifiers( void *userData, uint32_t
     auto& backend_input = *static_cast<WesterosViewbackendInput*>(userData);
     auto& handlerData = backend_input.m_handlerData;
 
-    auto& xkb = handlerData.xkb;
-    xkb_state_update_mask(xkb.state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
-
-    auto& modifiers = xkb.modifiers;
-    modifiers = 0;
-    auto component = static_cast<xkb_state_component>(XKB_STATE_MODS_DEPRESSED | XKB_STATE_MODS_LATCHED);
-    if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.control, component))
-        modifiers |= wpe_input_keyboard_modifier_control;
-    if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.alt, component))
-        modifiers |= wpe_input_keyboard_modifier_alt;
-    if (xkb_state_mod_index_is_active(xkb.state, xkb.indexes.shift, component))
-        modifiers |= wpe_input_keyboard_modifier_shift;
+    handlerData.modifiers = wpe_input_xkb_context_get_modifiers(wpe_input_xkb_context_get_default(), mods_depressed, mods_latched, mods_locked, group);
 }
 
 void WesterosViewbackendInput::keyboardHandleRepeatInfo( void *userData, int32_t rate, int32_t delay )
@@ -160,21 +142,12 @@ void WesterosViewbackendInput::handleKeyEvent(void* userData, uint32_t key, uint
         auto& backend_input = *static_cast<WesterosViewbackendInput*>(e->userData);
         auto& handlerData = backend_input.m_handlerData;
 
-        auto& xkb = handlerData.xkb;
-        uint32_t keysym = xkb_state_key_get_one_sym(xkb.state, e->key);
-        uint32_t unicode = xkb_state_key_get_utf32(xkb.state, e->key);
-
-        if (xkb.composeState
-            && e->state == WL_KEYBOARD_KEY_STATE_PRESSED
-            && xkb_compose_state_feed(xkb.composeState, keysym) == XKB_COMPOSE_FEED_ACCEPTED
-            && xkb_compose_state_get_status(xkb.composeState) == XKB_COMPOSE_COMPOSED)
-        {
-            keysym = xkb_compose_state_get_one_sym(xkb.composeState);
-            unicode = xkb_keysym_to_utf32(keysym);
-        }
+        uint32_t keysym = wpe_input_xkb_context_get_key_code(wpe_input_xkb_context_get_default(), e->key, e->state == WL_KEYBOARD_KEY_STATE_PRESSED);
+        if (!keysym)
+            return;
 
         struct wpe_input_keyboard_event event
-                { e->time, keysym, unicode, !!e->state, xkb.modifiers };
+                { e->time, keysym, e->key, !!e->state, handlerData.modifiers };
         wpe_view_backend_dispatch_keyboard_event(backend_input.m_viewbackend, &event);
 
         g_ptr_array_remove_fast(backend_input.m_keyEventDataArray, data);
@@ -333,10 +306,6 @@ WesterosViewbackendInput::WesterosViewbackendInput(struct wpe_view_backend* back
  , m_buttonEventDataArray(g_ptr_array_sized_new(4))
  , m_axisEventDataArray(g_ptr_array_sized_new(4))
 {
-    m_handlerData.xkb.context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    m_handlerData.xkb.composeTable = xkb_compose_table_new_from_locale(m_handlerData.xkb.context, setlocale(LC_CTYPE, nullptr), XKB_COMPOSE_COMPILE_NO_FLAGS);
-    if (m_handlerData.xkb.composeTable)
-        m_handlerData.xkb.composeState = xkb_compose_state_new(m_handlerData.xkb.composeTable, XKB_COMPOSE_STATE_NO_FLAGS);
 }
 
 WesterosViewbackendInput::~WesterosViewbackendInput()
@@ -346,16 +315,6 @@ WesterosViewbackendInput::~WesterosViewbackendInput()
 
     clearDataArrays();
 
-    if (m_handlerData.xkb.context)
-        xkb_context_unref(m_handlerData.xkb.context);
-    if (m_handlerData.xkb.keymap)
-        xkb_keymap_unref(m_handlerData.xkb.keymap);
-    if (m_handlerData.xkb.state)
-        xkb_state_unref(m_handlerData.xkb.state);
-    if (m_handlerData.xkb.composeTable)
-        xkb_compose_table_unref(m_handlerData.xkb.composeTable);
-    if (m_handlerData.xkb.composeState)
-        xkb_compose_state_unref(m_handlerData.xkb.composeState);
     if (m_handlerData.repeatData.eventSource)
         g_source_remove(m_handlerData.repeatData.eventSource);
 }
