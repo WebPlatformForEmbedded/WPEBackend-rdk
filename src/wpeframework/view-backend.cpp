@@ -105,7 +105,18 @@ void ViewBackend::handleMessage(char* data, size_t size)
 
 void ViewBackend::initialize()
 {
-    wpe_view_backend_dispatch_set_size( backend, WIDTH, HEIGHT );
+    uint16_t height = HEIGHT;
+    uint16_t width = WIDTH;
+
+    const char* width_text = ::getenv("WEBKIT_RESOLUTION_WIDTH");
+    const char* height_text = ::getenv("WEBKIT_RESOLUTION_HEIGHT");
+    if (width_text != nullptr) {
+        width = ::atoi(width_text);
+    }
+    if (height_text != nullptr) {
+        height = ::atoi(height_text);
+    }
+    wpe_view_backend_dispatch_set_size( backend, width, height);
 }
 
 void ViewBackend::ackBufferCommit()

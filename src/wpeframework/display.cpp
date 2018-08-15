@@ -192,20 +192,20 @@ Display::~Display()
 }
 
 /* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
-    uint32_t actual_key = key + 8;
+    uint32_t actual_key = keycode + 8;
 
     auto* xkb = wpe_input_xkb_context_get_default();
     uint32_t keysym = wpe_input_xkb_context_get_key_code(xkb, actual_key, !!actions);
     if (!keysym)
         return;
     auto* xkbState = wpe_input_xkb_context_get_state(xkb);
-    xkb_state_update_key(xkbState, actual_key, !!actions);
+    xkb_state_update_key(xkbState, actual_key, !!actions ? XKB_KEY_DOWN : XKB_KEY_UP);
     uint32_t modifiers = wpe_input_xkb_context_get_modifiers(xkb,
         xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_DEPRESSED),
         xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LATCHED),
         xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LOCKED),
         xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE));
-    struct wpe_input_keyboard_event event{ time(nullptr), keysym, actual_key, !!actions, modifiers };
+    struct wpe_input_keyboard_event event{ static_cast<uint32_t>(time(nullptr)), keysym, actual_key, !!actions, modifiers };
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
     std::memcpy(message.messageData, &event, sizeof(event));
