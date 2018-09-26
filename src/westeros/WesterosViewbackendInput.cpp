@@ -144,7 +144,10 @@ void WesterosViewbackendInput::handleKeyEvent(void* userData, uint32_t key, uint
 
         uint32_t keysym = wpe_input_xkb_context_get_key_code(wpe_input_xkb_context_get_default(), e->key, e->state == WL_KEYBOARD_KEY_STATE_PRESSED);
         if (!keysym)
+        {
+            delete e;
             return G_SOURCE_REMOVE;
+        }
 
         struct wpe_input_keyboard_event event
                 { e->time, keysym, e->key, !!e->state, handlerData.modifiers };
