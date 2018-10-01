@@ -65,8 +65,7 @@ public:
     }
 
 public:
-    virtual uint32_t AddRef() const {
-        return (0);
+    virtual void AddRef() const {
     }
     virtual uint32_t Release() const {
         return (0);
