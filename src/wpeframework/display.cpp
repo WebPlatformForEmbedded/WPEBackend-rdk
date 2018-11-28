@@ -211,6 +211,7 @@ Display::~Display()
     std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
+static_assert(sizeof(wpe_input_keyboard_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_keyboard_event");
 
 /* virtual */ void Display::Key(const bool pressed, uint32_t keycode, uint32_t hardware_keycode, uint32_t modifiers, uint32_t time)
 {
@@ -231,6 +232,7 @@ void Display::SendEvent(wpe_input_axis_event& event)
     std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
+static_assert(sizeof(wpe_input_axis_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_axis_event");
 
 void Display::SendEvent(wpe_input_pointer_event& event)
 {
@@ -239,6 +241,7 @@ void Display::SendEvent(wpe_input_pointer_event& event)
     std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
+static_assert(sizeof(wpe_input_pointer_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_pointer_event");
 
 void Display::SendEvent(wpe_input_touch_event& event)
 {
@@ -247,6 +250,7 @@ void Display::SendEvent(wpe_input_touch_event& event)
     std::memcpy(message.messageData, &event, sizeof(event));
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
+static_assert(sizeof(wpe_input_touch_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_touch_event");
 
 /* If we have pointer and or touch support in the abstraction layer, link it through like here 
 static const struct wl_pointer_listener g_pointerListener = {
