@@ -7,7 +7,7 @@
 # Copyright (C) 2016 Metrological.
 #
 find_package(PkgConfig)
-pkg_check_modules(LIBVIRTUAL_KEYBOARD REQUIRED virtualkeyboard)
+pkg_check_modules(LIBVIRTUAL_KEYBOARD REQUIRED WPEFrameworkVirtualInput)
 
 include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(LIBVIRTUAL_KEYBOARD DEFAULT_MSG
