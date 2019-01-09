@@ -46,45 +46,65 @@
 #include <string>
 
 class Client {
-public:
+private:
     Client()
-            : _name("WebKitBrowser_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()))
-            , _id(~0)
+        : _name("WebKitBrowser_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()))
+        , _id(0)
     {
-        char *tmp;
+    }
+    Client(const std::string& name, const uint32_t id)
+        : _name(name)
+        , _id(id)
+    {
+    }
+    
+public:
+    static Client* Instance() {
+        
+        static Client *_instance;
 
-        if (tmp = getenv("CLIENT_IDENTIFIER")) {
-            char *token = strtok(tmp, ",");
+        if (_instance == nullptr) {
+            std::string name;
+            uint32_t id;
+            char *tmp;
+            if (tmp = getenv("CLIENT_IDENTIFIER")) {
+                char *token = strtok(tmp, ",");
 
-            if (token != NULL)
-            {
-                _id = atoi(token);
-            }
+                if (token != NULL)
+                {
+                    name =  std::string(token);
+                }
 
-            token = strtok(NULL, ",");
-
-            if (token != NULL)
-            {
-                _name =  std::string(token);
+                token = strtok(NULL, ",");
+                
+                if (token != NULL)
+                {
+                    id = atoi(token);
+                }
+                
+                _instance = new Client(name, id);
+            } 
+            else {
+                _instance = new Client();
             }
         }
+        return _instance;
     }
+    
+    ~Client() {};
 
-public:
-    std::string Name(){
+    std::string Name() {
         return _name;
     }
 
-    uint8_t ID(){
+    uint32_t Id(){
         return _id;
     }
 
 private:
     std::string _name;
-    uint8_t _id;
+    uint32_t _id;
 };
-
-static Client g_client;
 
 namespace BCMNexus {
 
@@ -103,7 +123,7 @@ Backend::Backend()
     NxClient_JoinSettings joinSettings;
     NxClient_GetDefaultJoinSettings(&joinSettings);
 
-    strcpy(joinSettings.name, g_client.Name().c_str());
+    strcpy(joinSettings.name, Client::Instance()->Name().c_str());
 
     NEXUS_Error rc = NxClient_Join(&joinSettings);
     BDBG_ASSERT(!rc);
@@ -163,11 +183,7 @@ void EGLTarget::initialize(uint32_t width, uint32_t height)
     if (nativeWindow)
         return;
 
-    uint32_t nexusClientId(0); // For now we only accept 0. See Mail David Montgomery
-
-    if (g_client.ID() != uint8_t(~0)){
-        nexusClientId = g_client.ID();
-    }
+    uint32_t nexusClientId = Client::Instance()->Id(); // For now we only accept 0. See Mail David Montgomery
 
     NXPL_NativeWindowInfo windowInfo;
     windowInfo.x = 0;
