@@ -32,6 +32,16 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define XKB_ML_KeyRed           0x6d6c0001
+#define XKB_ML_KeyGreen         0x6d6c0002
+#define XKB_ML_KeyYellow        0x6d6c0003
+#define XKB_ML_KeyBlue          0x6d6c0004
+#define XKB_ML_KeyChannelUp     0x6d6c0005
+#define XKB_ML_KeyChannelDown   0x6d6c0006
+#define XKB_ML_KeyPlayPause     0x6d6c0007
+#define XKB_ML_KeyRewind        0x6d6c0008
+#define XKB_ML_KeyFastForward   0x6d6c0009
+
 namespace WPE {
 
 #ifndef KEY_INPUT_HANDLING_VIRTUAL
@@ -74,7 +84,42 @@ void LibinputServer::VirtualInput (unsigned int type, unsigned int code)
 bool LibinputServer::handleKeyboardEvent(uint32_t eventTime, uint32_t code, uint32_t state)
 {
     auto* xkb = wpe_input_xkb_context_get_default();
-    uint32_t keysym = wpe_input_xkb_context_get_key_code(xkb, code, !!state);
+
+    uint32_t keysym = 0;
+
+    switch (code) {
+    case 0x18e: // KEY_RED
+        keysym = XKB_ML_KeyRed;
+        break;
+    case 0x18f: // KEY_GREEN
+        keysym = XKB_ML_KeyGreen;
+        break;
+    case 0x190: // KEY_YELLOW
+        keysym = XKB_ML_KeyYellow;
+        break;
+    case 0x191: // KEY_BLUE
+        keysym = XKB_ML_KeyBlue;
+        break;
+    case 0x192: // KEY_CHANNELUP
+        keysym = XKB_ML_KeyChannelUp;
+        break;
+    case 0x193: // KEY_CHANNELDOWN
+        keysym = XKB_ML_KeyChannelDown;
+        break;
+    case 164: // KEY_PLAYPAUSE
+        keysym = XKB_ML_KeyPlayPause;
+        break;
+    case 168: // KEY_REWIND
+        keysym = XKB_ML_KeyRewind;
+        break;
+    case 208: // KEY_FASTFORWARD
+        keysym = XKB_ML_KeyFastForward;
+        break;
+    default:
+        keysym = wpe_input_xkb_context_get_key_code(xkb, code, !!state);
+        break;
+    }
+
     if (!keysym)
 	return false;
 
