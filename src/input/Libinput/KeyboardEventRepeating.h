@@ -58,9 +58,9 @@ private:
     Client& m_client;
     GSource* m_source;
     struct {
-        uint32_t time { 0 };
-        uint32_t keyCode { 0 };
-    } m_event;
+        uint32_t time;
+        uint32_t keyCode;
+    } m_event {0, 0};
 };
 
 } // namespace Input
