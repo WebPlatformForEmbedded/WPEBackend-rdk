@@ -28,12 +28,6 @@ find_package(WPE REQUIRED)
 find_package(Libxkbcommon REQUIRED)
 find_package(GLIB 2.38.0 REQUIRED COMPONENTS gio gio-unix)
 
-if (USE_VIRTUAL_KEYBOARD)
-    find_package(LibVirtualKeyboard REQUIRED)
-    include_directories(${LIBVIRTUAL_KEYBOARD_INCLUDE_DIRS})
-    add_definitions(-DKEY_INPUT_HANDLING_VIRTUAL=1)
-endif()
-
 if (USE_BACKEND_WESTEROS_MESA)
     add_definitions(-DWPE_BACKEND_MESA=1)
 endif ()
@@ -54,13 +48,15 @@ set(WPE_PLATFORM_LIBRARIES
         ${LIBXKBCOMMON_LIBRARIES}
         )
 
-set(WPE_PLATFORM_EXTRA_CFLAGS)
-
 if (USE_VIRTUAL_KEYBOARD)
+    find_package(WPEFrameworkVirtualInput REQUIRED)
     list(APPEND WPE_PLATFORM_LIBRARIES
-            ${LIBVIRTUAL_KEYBOARD_LIBRARIES}
-            )
-endif ()
+        WPEFrameworkVirtualInput::WPEFrameworkVirtualInput
+    )
+    add_definitions(-DKEY_INPUT_HANDLING_VIRTUAL=1)
+endif()
+
+set(WPE_PLATFORM_EXTRA_CFLAGS)
 
 set(WPE_PLATFORM_SOURCES
         src/loader-impl.cpp

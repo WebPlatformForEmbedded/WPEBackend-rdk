@@ -1,20 +1,10 @@
 find_package(Wayland QUIET)
-find_package(CompositorClient QUIET)
+find_package(compositorclient REQUIRED)
 
-if (COMPOSITOR_CLIENT_FOUND)
-
-    list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
-        ${COMPOSITOR_CLIENT_INCLUDE_DIRS}
-    )
-
-    list(APPEND WPE_PLATFORM_LIBRARIES
-        ${COMPOSITOR_CLIENT_LIBRARIES}
-    )
-
-    list(APPEND WPE_PLATFORM_EXTRA_CFLAGS
-        ${COMPOSITOR_CLIENT_CFLAGS}
-    )
-endif()
+message(STATUS "Building with compositor client")
+list(APPEND WPE_PLATFORM_LIBRARIES
+    compositorclient::compositorclient
+)
 
 if (WAYLAND_FOUND)
     find_package(WaylandEGL REQUIRED)
