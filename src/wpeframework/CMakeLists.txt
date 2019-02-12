@@ -1,4 +1,5 @@
 find_package(Wayland QUIET)
+find_package(EGL REQUIRED)
 find_package(compositorclient REQUIRED)
 
 message(STATUS "Building with compositor client")
