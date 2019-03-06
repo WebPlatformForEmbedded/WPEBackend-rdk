@@ -187,6 +187,7 @@ public:
     struct wl_compositor* compositor() const { return m_compositor; }
 
     void initialize();
+    void invalidate();
 
 private:
     static struct wl_registry_listener s_registryListener;
@@ -219,6 +220,14 @@ Backend::~Backend()
         wl_registry_destroy(m_registry);
     if (m_display)
         wl_display_disconnect(m_display);
+}
+
+void Backend::invalidate()
+{
+    if (m_eventSource) {
+        g_source_destroy(m_eventSource);
+        m_eventSource = nullptr;
+    }
 }
 
 void Backend::initialize()
@@ -293,6 +302,12 @@ EGLTarget::~EGLTarget()
         wl_egl_window_destroy(m_window);
     if (m_surface)
         wl_surface_destroy(m_surface);
+
+    if (m_backend && m_backend->display()) {
+        wl_display_flush(m_backend->display());
+        wl_display_roundtrip(m_backend->display());
+        const_cast<Backend&>(*m_backend).invalidate();
+    }
 }
 
 void EGLTarget::initialize(const Backend& backend, uint32_t width, uint32_t height)

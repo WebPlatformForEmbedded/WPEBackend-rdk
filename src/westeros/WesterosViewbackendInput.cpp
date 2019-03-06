@@ -174,7 +174,7 @@ gboolean WesterosViewbackendInput::repeatDelayTimeout(void* userData)
     auto& handlerData = backend_input.m_handlerData;
 
     handleKeyEvent(userData, handlerData.repeatData.key, handlerData.repeatData.state, handlerData.repeatData.time);
-    handlerData.repeatData.eventSource = g_timeout_add(handlerData.repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), userData);
+    handlerData.repeatData.eventSource = g_timeout_add(1000 / handlerData.repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), userData);
     return G_SOURCE_REMOVE;
 }
 
