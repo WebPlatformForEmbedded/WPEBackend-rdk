@@ -47,18 +47,43 @@ struct ViewBackend : public IPC::Host::Handler {
     void ackBufferCommit();
     void initialize();
 
+    static gboolean vsyncCallback(gpointer);
+
     struct wpe_view_backend* backend;
     IPC::Host ipcHost;
+    GSource* vsyncSource;
+    bool triggered;
 };
 
+static uint32_t MaxFPS() {
+    uint32_t tickDelay = 10; // 100 frames per second should be MAX and the default.
+    const char* max_FPS = ::getenv("WEBKIT_MAXIMUM_FPS");
+
+    if (max_FPS != nullptr) {
+        uint32_t configValue = ::atoi(max_FPS);
+        if ((configValue >= 1) && (configValue <= 100)) {
+            tickDelay = (1000 / configValue);
+        }
+    }
+    return (tickDelay);
+}
+ 
 ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     : backend(backend)
+    , vsyncSource(g_timeout_source_new(MaxFPS()))
+    , triggered(false)
 {
     ipcHost.initialize(*this);
+
+    g_source_set_callback(vsyncSource, static_cast<GSourceFunc>(vsyncCallback), this, nullptr);
+    g_source_set_priority(vsyncSource, G_PRIORITY_HIGH + 30);
+    g_source_set_can_recurse(vsyncSource, TRUE);
+    g_source_attach(vsyncSource, g_main_context_get_thread_default());
 }
 
 ViewBackend::~ViewBackend()
 {
+    g_source_destroy(vsyncSource);
     ipcHost.deinitialize();
 }
 
@@ -95,7 +120,7 @@ void ViewBackend::handleMessage(char* data, size_t size)
     }
     case IPC::BufferCommit::code:
     {
-        ackBufferCommit();
+        triggered = true;
         break;
     }
     default:
@@ -126,6 +151,18 @@ void ViewBackend::ackBufferCommit()
     ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
     wpe_view_backend_dispatch_frame_displayed(backend);
+}
+
+gboolean ViewBackend::vsyncCallback(gpointer data)
+{
+    ViewBackend* impl = static_cast<ViewBackend*>(data);
+
+    if (impl->triggered) {
+        impl->triggered = false;
+        impl->ackBufferCommit();
+    }
+
+    return (G_SOURCE_CONTINUE);
 }
 
 } // namespace WPEFramework
