@@ -285,7 +285,7 @@ repeatDelayTimeout(void* data)
 {
     auto& seatData = *static_cast<Display::SeatData*>(data);
     handleKeyEvent(seatData, seatData.repeatData.key, seatData.repeatData.state, seatData.repeatData.time);
-    seatData.repeatData.eventSource = g_timeout_add(seatData.repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), data);
+    seatData.repeatData.eventSource = g_timeout_add(1000 / seatData.repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), data);
     return G_SOURCE_REMOVE;
 }
 
