@@ -55,23 +55,19 @@ struct EGLTarget : public IPC::Client::Handler {
     Compositor::IDisplay::ISurface* surface;
 };
 
-static std::string DisplayName() {
-    std::string name;
-    const char* callsign (std::getenv("CLIENT_IDENTIFIER"));
+static std::string GenerateName()
+{
+    return "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+}
 
-    if (callsign == nullptr) {
-         name = "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+static std::string DisplayName()
+{
+    static std::string name;
+    if (name.empty() == true) {
+        name = GenerateName();
     }
-    else {
-        const char* delimiter = nullptr;
-        if ((delimiter = strchr(callsign, ',')) == nullptr) {
-            name = callsign;
-        }
-        else {
-            name = std::string(callsign, (delimiter - callsign));
-        }
-    }
-    return (name);
+
+    return name;
 }
 
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
@@ -84,7 +80,7 @@ EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
 
 void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height)
 {
-    surface = display.Create(DisplayName(), width, height);
+    surface = display.Create(GenerateName(), width, height);
     display.Backend(backend);
 }
 
