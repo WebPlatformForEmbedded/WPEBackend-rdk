@@ -56,20 +56,10 @@ struct EGLTarget : public IPC::Client::Handler {
 };
 
 static std::string DisplayName() {
-    std::string name;
-    const char* callsign (std::getenv("CLIENT_IDENTIFIER"));
+    std::string name = Compositor::IDisplay::SuggestedName();
 
-    if (callsign == nullptr) {
+    if (name.empty()) {
          name = "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    }
-    else {
-        const char* delimiter = nullptr;
-        if ((delimiter = strchr(callsign, ',')) == nullptr) {
-            name = callsign;
-        }
-        else {
-            name = std::string(callsign, (delimiter - callsign));
-        }
     }
     return (name);
 }
