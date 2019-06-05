@@ -57,15 +57,15 @@ private:
         , _id(id)
     {
     }
-    
+
 public:
     static Client* Instance() {
-        
+
         static Client *_instance;
 
         if (_instance == nullptr) {
             std::string name;
-            uint32_t id;
+            uint32_t id = 0;
             char *tmp;
             if (tmp = getenv("CLIENT_IDENTIFIER")) {
                 char *token = strtok(tmp, ",");
@@ -76,21 +76,21 @@ public:
                 }
 
                 token = strtok(NULL, ",");
-                
+
                 if (token != NULL)
                 {
                     id = atoi(token);
                 }
-                
+
                 _instance = new Client(name, id);
-            } 
+            }
             else {
                 _instance = new Client();
             }
         }
         return _instance;
     }
-    
+
     ~Client() {};
 
     std::string Name() {
