@@ -32,14 +32,14 @@
 #include <EGL/egl.h>
 #include <cstring>
 #include <stdio.h>
-#include <refsw/nexus_config.h>
-#include <refsw/nexus_platform.h>
-#include <refsw/nexus_display.h>
-#include <refsw/nexus_core_utils.h>
-#include <refsw/default_nexus.h>
+#include <nexus_config.h>
+#include <nexus_platform.h>
+#include <nexus_display.h>
+#include <nexus_core_utils.h>
+#include <default_nexus.h>
 
 #ifdef BACKEND_BCM_NEXUS_NXCLIENT
-#include <refsw/nxclient.h>
+#include <nxclient.h>
 #endif
 
 #include <chrono>
