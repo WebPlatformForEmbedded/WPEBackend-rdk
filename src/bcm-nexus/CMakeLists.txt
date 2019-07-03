@@ -1,6 +1,6 @@
 find_package(EGL REQUIRED)
 
-add_definitions(-DBACKEND_BCM_NEXUS=1)
+add_definitions(-DBACKEND_BCM_NEXUS=1 ${EGL_DEFINITIONS})
 
 list(APPEND WPE_PLATFORM_LIBRARIES
     nxpl
@@ -9,7 +9,7 @@ list(APPEND WPE_PLATFORM_LIBRARIES
 
 if (EGL_LIBRARIES_nxclient)
     message("-- Found NXCLIENT: TRUE [egl.pc]")
-    add_definitions(-DBACKEND_BCM_NEXUS_NXCLIENT=1 ${EGL_DEFINITIONS})
+    add_definitions(-DBACKEND_BCM_NEXUS_NXCLIENT=1)
     list(APPEND WPE_PLATFORM_LIBRARIES nxclient)
 endif()
 
