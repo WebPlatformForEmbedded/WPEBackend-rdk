@@ -30,6 +30,7 @@
 
 #include "KeyboardEventRepeating.h"
 #include <glib.h>
+#include <array>
 #include <memory>
 #include <wpe/wpe.h>
 #ifndef KEY_INPUT_HANDLING_VIRTUAL
