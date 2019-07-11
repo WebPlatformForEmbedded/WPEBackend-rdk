@@ -112,6 +112,13 @@ void ViewBackend::handleMessage(char* data, size_t size)
         wpe_view_backend_dispatch_touch_event(backend, event);
         break;
     }
+    case Display::MsgType::TOUCHSIMPLE:
+    {
+        struct wpe_input_touch_event_raw * touchpoint = reinterpret_cast<wpe_input_touch_event_raw*>(std::addressof(message.messageData));
+        struct wpe_input_touch_event event = { touchpoint, 1, touchpoint->type, touchpoint->id, touchpoint->time };
+        wpe_view_backend_dispatch_touch_event(backend, &event);
+        break;
+    }
     case Display::MsgType::KEYBOARD:
     {
         struct wpe_input_keyboard_event * event = reinterpret_cast<wpe_input_keyboard_event*>(std::addressof(message.messageData));
