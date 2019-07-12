@@ -25,6 +25,7 @@ option(USE_INPUT_UDEV "Whether to enable support for the libinput input udev lib
 option(USE_INPUT_WAYLAND "Whether to enable support for the wayland input backend" OFF)
 
 find_package(WPE REQUIRED)
+find_package(EGL REQUIRED)
 find_package(Libxkbcommon REQUIRED)
 find_package(GLIB 2.38.0 REQUIRED COMPONENTS gio gio-unix)
 
@@ -63,6 +64,10 @@ set(WPE_PLATFORM_SOURCES
 
         src/util/ipc.cpp
         )
+
+if (EGL_FOUND)
+    add_definitions(${PC_EGL_CFLAGS})
+endif ()
 
 if (USE_INPUT_LIBINPUT)
     find_package(Libinput REQUIRED)
