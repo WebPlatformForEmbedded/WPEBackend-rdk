@@ -644,6 +644,7 @@ void EventDispatcher::sendEvent( wpe_input_axis_event& event )
     {
         IPC::Message message;
         message.messageCode = MsgType::AXIS;
+        static_assert(sizeof(event) <= sizeof(message.messageData), "Message::messageData is of correct size");
         memcpy( message.messageData, &event, sizeof(event) );
         m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
     }
