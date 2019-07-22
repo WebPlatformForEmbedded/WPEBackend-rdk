@@ -39,7 +39,7 @@ struct TargetConstruction {
     uint32_t handle;
     uint32_t width;
     uint32_t height;
-    uint8_t padding[12];
+    uint8_t padding[20];
 
     static const uint64_t code = 1;
     static void construct(Message& message, uint32_t handle, uint32_t width, uint32_t height)
@@ -62,7 +62,7 @@ struct BufferCommit {
     uint32_t handle;
     uint32_t width;
     uint32_t height;
-    uint8_t padding[12];
+    uint8_t padding[20];
 
     static const uint64_t code = 2;
     static void construct(Message& message, uint32_t handle, uint32_t width, uint32_t height)
@@ -82,7 +82,7 @@ struct BufferCommit {
 static_assert(sizeof(BufferCommit) == Message::dataSize, "BufferCommit is of correct size");
 
 struct FrameComplete {
-    int8_t padding[24];
+    int8_t padding[32];
 
     static const uint64_t code = 3;
     static void construct(Message& message)

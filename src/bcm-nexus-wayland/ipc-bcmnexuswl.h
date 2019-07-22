@@ -40,7 +40,7 @@ struct TargetConstruction {
     uint32_t handle;
     uint32_t width;
     uint32_t height;
-    uint8_t padding[12];
+    uint8_t padding[20];
 
     static const uint64_t code = 1;
     static void construct(Message& message, uint32_t handle, uint32_t width, uint32_t height)
@@ -62,7 +62,7 @@ static_assert(sizeof(TargetConstruction) == Message::dataSize, "TargetConstructi
 struct Authentication {
     uint32_t authDataSize;
     uint32_t chunkSize;
-    uint8_t data[16];
+    uint8_t data[24];
 
     static const uint64_t code = 2;
     static const size_t maxChunkSize = 16;
@@ -85,7 +85,7 @@ static_assert(sizeof(Authentication) == Message::dataSize, "Authentication is of
 struct BufferCommit {
     uint32_t width;
     uint32_t height;
-    uint8_t padding[16];
+    uint8_t padding[24];
 
     static const uint64_t code = 3;
     static void construct(Message& message, uint32_t width, uint32_t height)
@@ -104,7 +104,7 @@ struct BufferCommit {
 static_assert(sizeof(BufferCommit) == Message::dataSize, "BufferCommit is of correct size");
 
 struct FrameComplete {
-    int8_t padding[24];
+    int8_t padding[32];
 
     static const uint64_t code = 4;
     static void construct(Message& message)

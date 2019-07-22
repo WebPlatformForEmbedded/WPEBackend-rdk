@@ -35,7 +35,7 @@
 namespace IPC {
 
 struct BufferCommit {
-    uint8_t padding[24];
+    uint8_t padding[32];
 
     static const uint64_t code = 1;
     static void construct(Message& message)
@@ -50,7 +50,7 @@ struct BufferCommit {
 static_assert(sizeof(BufferCommit) == Message::dataSize, "BufferCommit is of correct size");
 
 struct FrameComplete {
-    int8_t padding[24];
+    int8_t padding[32];
 
     static const uint64_t code = 2;
     static void construct(Message& message)

@@ -648,6 +648,7 @@ void EventDispatcher::sendEvent( wpe_input_axis_event& event )
         m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
     }
 }
+static_assert(sizeof(wpe_input_axis_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_axis_event");
 
 void EventDispatcher::sendEvent( wpe_input_pointer_event& event )
 {
@@ -659,6 +660,7 @@ void EventDispatcher::sendEvent( wpe_input_pointer_event& event )
         m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
     }
 }
+static_assert(sizeof(wpe_input_pointer_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_pointer_event");
 
 void EventDispatcher::sendEvent( wpe_input_touch_event& event )
 {
@@ -670,6 +672,7 @@ void EventDispatcher::sendEvent( wpe_input_touch_event& event )
         m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
     }
 }
+static_assert(sizeof(wpe_input_touch_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_touch_event");
 
 void EventDispatcher::sendEvent( wpe_input_keyboard_event& event )
 {
@@ -681,6 +684,7 @@ void EventDispatcher::sendEvent( wpe_input_keyboard_event& event )
         m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
     }
 }
+static_assert(sizeof(wpe_input_keyboard_event) <= IPC::Message::dataSize, "Message can contain a wpe_input_keyboard_event");
 
 void EventDispatcher::sendEvent( wpe_input_touch_event_raw& event )
 {
@@ -692,6 +696,7 @@ void EventDispatcher::sendEvent( wpe_input_touch_event_raw& event )
         m_ipc->sendMessage(IPC::Message::data(message), IPC::Message::size);
     }
 }
+static_assert(sizeof(wpe_input_touch_event_raw) <= IPC::Message::dataSize, "Message can contain a wpe_input_touch_event_raw");
 
 void EventDispatcher::setIPC( IPC::Client& ipcClient )
 {
