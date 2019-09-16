@@ -37,7 +37,7 @@
 #include <libudev.h>
 #include <libinput.h>
 #else
-#include <VirtualKeyboard.h>
+#include <virtualinput.h>
 #endif
 
 struct wpe_view_backend;
@@ -85,7 +85,7 @@ public:
     void VirtualInput (unsigned int type, unsigned int code);
 
 private:
-    void* m_virtualkeyboard;
+    void* m_virtualinput;
 #else
     void processEvents();
     void handleTouchEvent(struct libinput_event *event, enum wpe_input_touch_event_type type);

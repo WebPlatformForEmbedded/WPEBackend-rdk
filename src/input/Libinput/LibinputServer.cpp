@@ -62,14 +62,14 @@ struct libinput_interface g_interface = {
 
 static const char * connectorName = "/tmp/keyhandler";
 
-static void VirtualKeyboardCallback(actiontype type , unsigned int code)
+static void VirtualKeyboardCallback(keyactiontype type , unsigned int code)
 {
-   if (type != COMPLETED)
+   if (type != KEY_COMPLETED)
    {
-      // RELEASED  = 0,
-      // PRESSED   = 1,
-      // REPEAT    = 2,
-      // COMPLETED = 3
+      // KEY_RELEASED  = 0,
+      // KEY_PRESSED   = 1,
+      // KEY_REPEAT    = 2,
+      // KEY_COMPLETED = 3
       LibinputServer::singleton().VirtualInput (type, code);
    }
 }
@@ -149,7 +149,7 @@ LibinputServer::LibinputServer()
 #ifndef KEY_INPUT_HANDLING_VIRTUAL
     , m_udev(nullptr)
 #else
-    , m_virtualkeyboard(nullptr)
+    , m_virtualinput(nullptr)
 #endif
 {
 #ifndef KEY_INPUT_HANDLING_VIRTUAL
@@ -182,9 +182,11 @@ LibinputServer::LibinputServer()
 #else
 
     const char listenerName[] = "WebKitBrowser";
-    m_virtualkeyboard = Construct(listenerName, connectorName, VirtualKeyboardCallback);
-    if (m_virtualkeyboard == nullptr) {
-      fprintf(stderr, "[LibinputServer] Initialization of virtual keyboard failed!!!\n");
+    callback_keyboard(VirtualKeyboardCallback);
+    m_virtualinput = virtualinput_open(listenerName, connectorName);
+
+    if (m_virtualinput == nullptr) {
+        fprintf(stderr, "[LibinputServer] Initialization of virtual keyboard failed!!!\n");
     }
     else {
        fprintf(stderr, "[LibinputServer] Initialization of virtual keyboard and linux input system succeeded.\n");
@@ -196,8 +198,8 @@ LibinputServer::LibinputServer()
 LibinputServer::~LibinputServer()
 {
 #ifdef KEY_INPUT_HANDLING_VIRTUAL
-    if (m_virtualkeyboard != nullptr) {
-       Destruct(m_virtualkeyboard);
+    if (m_virtualinput != nullptr) {
+       virtualinput_close(m_virtualinput);
     }
 #else
     libinput_unref(m_libinput);
