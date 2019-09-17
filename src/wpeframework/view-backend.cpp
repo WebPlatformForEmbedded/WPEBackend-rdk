@@ -30,6 +30,7 @@
 #include "display.h"
 #include "ipc.h"
 #include "ipc-buffer.h"
+#include <array>
 
 #define WIDTH 1280
 #define HEIGHT 720
@@ -50,6 +51,7 @@ struct ViewBackend : public IPC::Host::Handler {
     static gboolean vsyncCallback(gpointer);
 
     struct wpe_view_backend* backend;
+    std::array<struct wpe_input_touch_event_raw, 10> touchpoints;
     IPC::Host ipcHost;
     GSource* vsyncSource;
     bool triggered;
@@ -79,6 +81,8 @@ ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     g_source_set_priority(vsyncSource, G_PRIORITY_HIGH + 30);
     g_source_set_can_recurse(vsyncSource, TRUE);
     g_source_attach(vsyncSource, g_main_context_get_thread_default());
+
+    touchpoints.fill({ wpe_input_touch_event_type_null, 0, 0, 0, 0 });
 }
 
 ViewBackend::~ViewBackend()
@@ -106,10 +110,27 @@ void ViewBackend::handleMessage(char* data, size_t size)
         wpe_view_backend_dispatch_pointer_event(backend, event);
         break;
     }
-    case Display::MsgType::TOUCH:
+    case Display::MsgType::TOUCH: // UNUSED!
     {
         struct wpe_input_touch_event * event = reinterpret_cast<wpe_input_touch_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_touch_event(backend, event);
+        break;
+    }
+    case Display::MsgType::TOUCHSIMPLE:
+    {
+        struct wpe_input_touch_event_raw * tp = reinterpret_cast<wpe_input_touch_event_raw*>(std::addressof(message.messageData));
+        if ((tp->id >= 0) && (tp->id < static_cast<int32_t>(touchpoints.size()))) {
+            auto& point = touchpoints[tp->id];
+            point = { tp->type, tp->time, tp->id, tp->x, tp->y };
+
+            struct wpe_input_touch_event event = { touchpoints.data(), touchpoints.size(), tp->type, tp->id, tp->time, 0 };
+            wpe_view_backend_dispatch_touch_event(backend, &event);
+
+            // Free the slot if the touch disappears.
+            if (tp->type == wpe_input_touch_event_type_up) {
+                point = { wpe_input_touch_event_type_null, 0, -1, -1, -1 };
+            }
+        }
         break;
     }
     case Display::MsgType::KEYBOARD:

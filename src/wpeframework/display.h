@@ -95,7 +95,94 @@ private:
     } _repeatData { 0, 0, IKeyboard::released, 0 };
 };
 
-class Display : public KeyboardHandler::IKeyHandler{
+class WheelHandler : public Compositor::IDisplay::IWheel {
+public:
+    WheelHandler () = delete;
+    WheelHandler (const WheelHandler&) = delete;
+    WheelHandler& operator= (const WheelHandler&) = delete;
+
+    struct IWheelMotionHandler {
+        virtual ~IWheelMotionHandler() { }
+        virtual void WheelMotion(const int16_t horizontal, const int16_t vertical) = 0;
+    };
+
+    WheelHandler (IWheelMotionHandler* callback) : _callback(callback) { }
+    ~WheelHandler() { }
+
+    void AddRef() const override { }
+    uint32_t Release() const override { return (0); }
+
+    void Direct(const int16_t horizontal, const int16_t vertical) override;
+
+private:
+    IWheelMotionHandler* _callback;
+};
+
+class PointerHandler : public Compositor::IDisplay::IPointer {
+public:
+    PointerHandler() = delete;
+    PointerHandler(const PointerHandler&) = delete;
+    PointerHandler& operator= (const PointerHandler&) = delete;
+
+    struct IPointerEventHandler {
+        virtual ~IPointerEventHandler() { }
+        virtual void PointerButton(const uint8_t button, const uint16_t state, const uint16_t x, const uint16_t y, const uint32_t modifiers) = 0;
+        virtual void PointerPosition(const uint8_t button, const uint16_t state, const uint16_t x, const uint16_t y, const uint32_t modifiers) = 0;
+    };
+
+    PointerHandler(IPointerEventHandler* callback)
+        : _callback(callback)
+        , _x(0)
+        , _y(0)
+        , _button(0)
+        , _modifiers(0)
+    { }
+    ~PointerHandler() { }
+
+    void AddRef() const override { }
+    uint32_t Release() const override { return (0); }
+
+    void Direct(const uint8_t button, const IPointer::state state) override;
+    void Direct(const uint16_t x, const uint16_t y) override;
+
+private:
+    IPointerEventHandler* _callback;
+    uint16_t _x;
+    uint16_t _y;
+    uint16_t _button;
+    uint16_t _state;
+    uint32_t _modifiers;
+};
+
+class TouchPanelHandler : public Compositor::IDisplay::ITouchPanel {
+public:
+    TouchPanelHandler() = delete;
+    TouchPanelHandler(const TouchPanelHandler&) = delete;
+    TouchPanelHandler& operator= (const TouchPanelHandler&) = delete;
+
+    struct ITouchEventHandler {
+        virtual ~ITouchEventHandler() { }
+        virtual void Touch(const uint8_t index, const ITouchPanel::state state, const uint16_t x, const uint16_t y) = 0;
+    };
+
+    TouchPanelHandler(ITouchEventHandler* callback)
+        : _callback(callback)
+    { }
+    ~TouchPanelHandler() { }
+
+    void AddRef() const override { }
+    uint32_t Release() const override { return (0); }
+
+    void Direct(const uint8_t index, const ITouchPanel::state state, const uint16_t x, const uint16_t y) override;
+
+private:
+    ITouchEventHandler* _callback;
+};
+
+class Display : public KeyboardHandler::IKeyHandler,
+                public WheelHandler::IWheelMotionHandler,
+                public PointerHandler::IPointerEventHandler,
+                public TouchPanelHandler::ITouchEventHandler {
 private:
     Display() = delete;
     Display (const Display&) = delete;
@@ -107,6 +194,7 @@ public:
 	AXIS = 0x30,
 	POINTER,
 	TOUCH,
+    TOUCHSIMPLE,
 	KEYBOARD
     };
 
@@ -119,6 +207,9 @@ public:
         Compositor::IDisplay::ISurface* newSurface = m_display->Create(name, width, height);
         if (newSurface != nullptr) {
             newSurface->Keyboard(&m_keyboard);
+            newSurface->Wheel(&m_wheel);
+            newSurface->Pointer(&m_pointer);
+            newSurface->TouchPanel(&m_touchpanel);
         }
         return (newSurface);
     }
@@ -127,19 +218,26 @@ public:
         m_backend = backend;
     }
 
-    void SendEvent( wpe_input_axis_event& event );
-    void SendEvent( wpe_input_pointer_event& event );
-    void SendEvent( wpe_input_touch_event& event );
+    void SendEvent(wpe_input_axis_event& event);
+    void SendEvent(wpe_input_pointer_event& event);
+    void SendEvent(wpe_input_touch_event& event);
+    void SendEvent(wpe_input_touch_event_raw& event);
 
-
-private: 
-    virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
-    virtual void Key (const uint32_t key, const Compositor::IDisplay::IKeyboard::state action);
+private:
+    virtual void Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
+    virtual void Key(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action);
+    virtual void WheelMotion(const int16_t horizontal, const int16_t vertical) override;
+    virtual void PointerButton(const uint8_t button, const uint16_t state, const uint16_t x, const uint16_t y, const uint32_t modifiers) override;
+    virtual void PointerPosition(const uint8_t button, const uint16_t state, const uint16_t x, const uint16_t y, const uint32_t modifiers) override;
+    virtual void Touch(const uint8_t index, const Compositor::IDisplay::ITouchPanel::state state, const uint16_t x, const uint16_t y) override;
 
 private:
     IPC::Client& m_ipc;
     GSource* m_eventSource;
     KeyboardHandler m_keyboard;
+    WheelHandler m_wheel;
+    PointerHandler m_pointer;
+    TouchPanelHandler m_touchpanel;
     struct wpe_view_backend* m_backend;
     Compositor::IDisplay* m_display;
 };

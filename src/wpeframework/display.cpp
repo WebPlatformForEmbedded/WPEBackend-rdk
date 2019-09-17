@@ -26,6 +26,7 @@
 
 #include "display.h"
 #include <cstring>
+#include <chrono>
 
 namespace WPEFramework {
 
@@ -72,6 +73,13 @@ GSourceFuncs EventSource::sourceFuncs = {
     nullptr, // closure_callback
     nullptr, // closure_marshall
 };
+
+namespace {
+    inline uint32_t TimeNow()
+    {
+        return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    }
+}
 
 // -----------------------------------------------------------------------------------------
 // XKB Keyboard implementation to be hooked up to the wayland abstraction class
@@ -161,12 +169,71 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 }
 
 // -----------------------------------------------------------------------------------------
+// Wheel handling
+// -----------------------------------------------------------------------------------------
+
+/* virtual */ void WheelHandler::Direct(const int16_t horizontal, const int16_t vertical)
+{
+    _callback->WheelMotion(horizontal, vertical);
+}
+
+// -----------------------------------------------------------------------------------------
+// Pointer handling
+// -----------------------------------------------------------------------------------------
+
+/* virtual */  void PointerHandler::Direct(const uint8_t button, const IPointer::state state)
+{
+    _button = (button + 1);
+
+    uint32_t modifiers = 0;
+    switch (_button) {
+    case 1:
+        modifiers = wpe_input_pointer_modifier_button1;
+        break;
+    case 2:
+        modifiers = wpe_input_pointer_modifier_button2;
+        break;
+    case 3:
+        modifiers = wpe_input_pointer_modifier_button3;
+        break;
+    }
+
+    _state = (state == Compositor::IDisplay::IPointer::pressed);
+    if (_state) {
+        _modifiers |= modifiers;
+    } else {
+        _modifiers &= ~modifiers;
+    }
+
+    _callback->PointerButton(_button, _state, _x, _y, _modifiers);
+}
+
+/* virtual */  void PointerHandler::Direct(const uint16_t x, const uint16_t y)
+{
+    _x = x;
+    _y = y;
+    _callback->PointerPosition(_button, _state, _x, _y, _modifiers);
+}
+
+// -----------------------------------------------------------------------------------------
+// Touch panel handling
+// -----------------------------------------------------------------------------------------
+
+/* virtual */  void TouchPanelHandler::Direct(const uint8_t index, const ITouchPanel::state state, const uint16_t x, const uint16_t y)
+{
+    _callback->Touch(index, state, x, y);
+}
+
+// -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
 Display::Display(IPC::Client& ipc, const std::string& name)
     : m_ipc(ipc)
     , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
+    , m_wheel(this)
+    , m_pointer(this)
+    , m_touchpanel(this)
     , m_backend(nullptr)
     , m_display(Compositor::IDisplay::Instance(name))
 {
@@ -205,7 +272,7 @@ Display::~Display()
         xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LATCHED),
         xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LOCKED),
         xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE));
-    struct wpe_input_keyboard_event event{ static_cast<uint32_t>(time(nullptr)), keysym, actual_key, !!actions, modifiers };
+    struct wpe_input_keyboard_event event{ TimeNow(), keysym, actual_key, !!actions, modifiers };
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
     std::memcpy(message.messageData, &event, sizeof(event));
@@ -222,6 +289,48 @@ Display::~Display()
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
     // TODO: this is not needed but it was done in the wayland-egl code, lets remove this later.
     // wpe_view_backend_dispatch_keyboard_event(m_backend, &event);
+}
+
+void Display::WheelMotion(const int16_t horizontal, const int16_t vertical)
+{
+    const int Y_AXIS = 0;
+    const int X_AXIS = 1;
+
+    wpe_input_axis_event event{};
+    event.type = wpe_input_axis_event_type_motion;
+    event.time = TimeNow();
+
+    if (horizontal != 0) {
+        event.axis = X_AXIS;
+        event.value = horizontal;
+    } else if (vertical != 0) {
+        event.axis = Y_AXIS;
+        event.value = vertical;
+    }
+
+    SendEvent(event);
+}
+
+void Display::PointerButton(const uint8_t button, const uint16_t state, const uint16_t x, const uint16_t y, const uint32_t modifiers)
+{
+    wpe_input_pointer_event event { wpe_input_pointer_event_type_button, TimeNow(), x, y, button, state, modifiers };
+    SendEvent(event);
+}
+
+void Display::PointerPosition(const uint8_t button, const uint16_t state, const uint16_t x, const uint16_t y, const uint32_t modifiers)
+{
+    wpe_input_pointer_event event = { wpe_input_pointer_event_type_motion, TimeNow(), x, y, button, state, modifiers };
+    SendEvent(event);
+}
+
+void Display::Touch(const uint8_t index, const Compositor::IDisplay::ITouchPanel::state state, const uint16_t x, const uint16_t y)
+{
+    wpe_input_touch_event_type type = ((state == Compositor::IDisplay::ITouchPanel::motion)? wpe_input_touch_event_type_motion
+                                        : ((state == Compositor::IDisplay::ITouchPanel::pressed)? wpe_input_touch_event_type_down
+                                            : wpe_input_touch_event_type_up));
+
+    wpe_input_touch_event_raw touchpoint = { type, TimeNow(), index, x, y };
+    SendEvent(touchpoint);
 }
 
 void Display::SendEvent(wpe_input_axis_event& event)
@@ -248,167 +357,12 @@ void Display::SendEvent(wpe_input_touch_event& event)
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
-/* If we have pointer and or touch support in the abstraction layer, link it through like here 
-static const struct wl_pointer_listener g_pointerListener = {
-    // enter
-    [](void* data, struct wl_pointer*, uint32_t serial, struct wl_surface* surface, wl_fixed_t, wl_fixed_t)
-    {
-        auto& seatData = *static_cast<Display::SeatData*>(data);
-        seatData.serial = serial;
-        auto it = seatData.inputClients.find(surface);
-        if (it != seatData.inputClients.end())
-            seatData.pointer.target = *it;
-    },
-    // leave
-    [](void* data, struct wl_pointer*, uint32_t serial, struct wl_surface* surface)
-    {
-        auto& seatData = *static_cast<Display::SeatData*>(data);
-        seatData.serial = serial;
-        auto it = seatData.inputClients.find(surface);
-        if (it != seatData.inputClients.end() && seatData.pointer.target.first == it->first)
-            seatData.pointer.target = { nullptr, nullptr };
-    },
-    // motion
-    [](void* data, struct wl_pointer*, uint32_t time, wl_fixed_t fixedX, wl_fixed_t fixedY)
-    {
-        auto x = wl_fixed_to_int(fixedX);
-        auto y = wl_fixed_to_int(fixedY);
-
-        auto& pointer = static_cast<Display::SeatData*>(data)->pointer;
-        pointer.coords = { x, y };
-
-        struct wpe_input_pointer_event event = { wpe_input_pointer_event_type_motion, time, x, y, pointer.button, pointer.state };
-        EventDispatcher::singleton().sendEvent( event );
-
-        if (pointer.target.first) {
-            struct wpe_view_backend* backend = pointer.target.second;
-            wpe_view_backend_dispatch_pointer_event(backend, &event);
-        }
-    },
-    // button
-    [](void* data, struct wl_pointer*, uint32_t serial, uint32_t time, uint32_t button, uint32_t state)
-    {
-        static_cast<Display::SeatData*>(data)->serial = serial;
-
-        if (button >= BTN_MOUSE)
-            button = button - BTN_MOUSE + 1;
-        else
-            button = 0;
-
-        auto& pointer = static_cast<Display::SeatData*>(data)->pointer;
-        auto& coords = pointer.coords;
-
-        pointer.button = !!state ? button : 0;
-        pointer.state = state;
-
-        struct wpe_input_pointer_event event = { wpe_input_pointer_event_type_button, time, coords.first, coords.second, button, state };
-        EventDispatcher::singleton().sendEvent( event );
-
-        if (pointer.target.first) {
-            struct wpe_view_backend* backend = pointer.target.second;
-            wpe_view_backend_dispatch_pointer_event(backend, &event);
-        }
-    },
-    // axis
-    [](void* data, struct wl_pointer*, uint32_t time, uint32_t axis, wl_fixed_t value)
-    {
-        auto& pointer = static_cast<Display::SeatData*>(data)->pointer;
-        auto& coords = pointer.coords;
-
-        struct wpe_input_axis_event event = { wpe_input_axis_event_type_motion, time, coords.first, coords.second, axis, -wl_fixed_to_int(value) };
-        EventDispatcher::singleton().sendEvent( event );
-
-        if (pointer.target.first) {
-            struct wpe_view_backend* backend = pointer.target.second;
-            wpe_view_backend_dispatch_axis_event(backend, &event);
-        }
-    },
-};
-
-
-static const struct wl_touch_listener g_touchListener = {
-    // down
-    [](void* data, struct wl_touch*, uint32_t serial, uint32_t time, struct wl_surface* surface, int32_t id, wl_fixed_t x, wl_fixed_t y)
-    {
-        auto& seatData = *static_cast<Display::SeatData*>(data);
-        seatData.serial = serial;
-
-        int32_t arraySize = std::tuple_size<decltype(seatData.touch.targets)>::value;
-        if (id < 0 || id >= arraySize)
-            return;
-
-        auto& target = seatData.touch.targets[id];
-        assert(!target.first && !target.second);
-
-        auto it = seatData.inputClients.find(surface);
-        if (it == seatData.inputClients.end())
-            return;
-
-        target = { surface, it->second };
-
-        auto& touchPoints = seatData.touch.touchPoints;
-        touchPoints[id] = { wpe_input_touch_event_type_down, time, id, wl_fixed_to_int(x), wl_fixed_to_int(y) };
-
-        struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_down, id, time };
-
-        struct wpe_view_backend* backend = target.second;
-        wpe_view_backend_dispatch_touch_event(backend, &event);
-    },
-    // up
-    [](void* data, struct wl_touch*, uint32_t serial, uint32_t time, int32_t id)
-    {
-        auto& seatData = *static_cast<Display::SeatData*>(data);
-        seatData.serial = serial;
-
-        int32_t arraySize = std::tuple_size<decltype(seatData.touch.targets)>::value;
-        if (id < 0 || id >= arraySize)
-            return;
-
-        auto& target = seatData.touch.targets[id];
-        assert(target.first && target.second);
-
-        auto& touchPoints = seatData.touch.touchPoints;
-        auto& point = touchPoints[id];
-        point = { wpe_input_touch_event_type_up, time, id, point.x, point.y };
-
-        struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_up, id, time };
-
-        struct wpe_view_backend* backend = target.second;
-        wpe_view_backend_dispatch_touch_event(backend, &event);
-
-        point = { wpe_input_touch_event_type_null, 0, 0, 0, 0 };
-        target = { nullptr, nullptr };
-    },
-    // motion
-    [](void* data, struct wl_touch*, uint32_t time, int32_t id, wl_fixed_t x, wl_fixed_t y)
-    {
-        auto& seatData = *static_cast<Display::SeatData*>(data);
-
-        int32_t arraySize = std::tuple_size<decltype(seatData.touch.targets)>::value;
-        if (id < 0 || id >= arraySize)
-            return;
-
-        auto& target = seatData.touch.targets[id];
-        assert(target.first && target.second);
-
-        auto& touchPoints = seatData.touch.touchPoints;
-        touchPoints[id] = { wpe_input_touch_event_type_motion, time, id, wl_fixed_to_int(x), wl_fixed_to_int(y) };
-
-        struct wpe_input_touch_event event = { touchPoints.data(), touchPoints.size(), wpe_input_touch_event_type_motion, id, time };
-
-        struct wpe_view_backend* backend = target.second;
-        wpe_view_backend_dispatch_touch_event(backend, &event);
-    },
-    // frame
-    [](void*, struct wl_touch*)
-    {
-        // FIXME: Dispatching events via frame() would avoid dispatching events
-        // for every single event that's encapsulated in a frame with multiple
-        // other events.
-    },
-    // cancel
-    [](void*, struct wl_touch*) { },
-};
-*/
+void Display::SendEvent(wpe_input_touch_event_raw& event)
+{
+    IPC::Message message;
+    message.messageCode = MsgType::TOUCHSIMPLE;
+    std::memcpy(message.messageData, &event, sizeof(event));
+    m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
+}
 
 } // namespace WPEFramework

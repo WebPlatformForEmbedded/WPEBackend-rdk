@@ -35,8 +35,8 @@
 namespace IPC {
 
 struct Message {
-    static const size_t size = 32;
-    static const size_t dataSize = 24;
+    static const size_t size = 40;
+    static const size_t dataSize = 32;
 
     uint64_t messageCode { 0 };
     uint8_t messageData[dataSize] { 0, };
