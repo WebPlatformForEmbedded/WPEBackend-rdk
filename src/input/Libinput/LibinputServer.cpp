@@ -182,8 +182,7 @@ LibinputServer::LibinputServer()
 #else
 
     const char listenerName[] = "WebKitBrowser";
-    callback_keyboard(VirtualKeyboardCallback);
-    m_virtualinput = virtualinput_open(listenerName, connectorName);
+    m_virtualinput = virtualinput_open(listenerName, connectorName, VirtualKeyboardCallback, nullptr, nullptr);
 
     if (m_virtualinput == nullptr) {
         fprintf(stderr, "[LibinputServer] Initialization of virtual keyboard failed!!!\n");
