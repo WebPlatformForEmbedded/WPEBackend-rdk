@@ -50,6 +50,10 @@
 #include "wayland-egl/interfaces.h"
 #endif
 
+#ifdef BACKEND_DIRECTFB
+#include "directfb/interfaces.h"
+#endif
+
 #ifdef BACKEND_WESTEROS
 #include "westeros/interfaces.h"
 #endif
@@ -146,6 +150,18 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
             return &wayland_egl_view_backend_interface;
+#endif
+
+#ifdef BACKEND_DIRECTFB
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface"))
+            return &directfb_renderer_backend_egl_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_target_interface"))
+            return &directfb_renderer_backend_egl_target_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_offscreen_target_interface"))
+            return &directfb_renderer_backend_egl_offscreen_target_interface;
+
+        if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
+            return &directfb_view_backend_interface;
 #endif
 
 #ifdef BACKEND_WESTEROS
