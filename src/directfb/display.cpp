@@ -361,12 +361,6 @@ void Display::unregisterDirectFBDisplayPlatform()
 {
     if (m_dfb) {
         /* Add Platform Specific code */
-#if defined(PLATFORM_BRCM)
-        if(m_dfbPlatformHandle) {
-            DBPL_UnregisterDirectFBDisplayPlatform(m_dfbPlatformHandle);
-            m_dfbPlatformHandle = 0;
-        }
-#endif
     }
 }
 
@@ -403,10 +397,6 @@ bool Display::initDirectFB()
 bool Display::registerDirectFBDisplayPlatform()
 {
     /* Add Platform Specific code */
-#if defined(PLATFORM_BRCM)
-    if(0 == m_dfbPlatformHandle)
-        DBPL_RegisterDirectFBDisplayPlatform(&m_dfbPlatformHandle, m_dfb);
-#endif
     return true;
 }
 
@@ -418,9 +408,6 @@ Display& Display::singleton()
 
 Display::Display()
     :m_dfb(NULL)
-#if defined(PLATFORM_BRCM)
-    ,m_dfbPlatformHandle(0)
-#endif
 {
     memset(&m_layerConfig, sizeof(m_layerConfig), 0);
 

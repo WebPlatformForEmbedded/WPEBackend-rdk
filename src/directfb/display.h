@@ -28,11 +28,7 @@
 #ifndef wpe_view_backend_directfb_display_h
 #define wpe_view_backend_directfb_display_h
 
-#if defined(PLATFORM_BRCM)
-#include <default_directfb.h>
-#else
 #include <directfb.h>
-#endif /* PLATFORM_BRCM */
 
 #define DFB_EVENT_BUFFER_TIMOUT_SEC 0 /* seconds*/
 #define DFB_EVENT_BUFFER_TIMOUT_MS 100 /* MiliSeconds*/
@@ -107,10 +103,6 @@ private:
 
     IDirectFB* m_dfb;
     DFBDisplayLayerConfig m_layerConfig;
-
-#if defined(PLATFORM_BRCM)
-    DBPL_PlatformHandle   m_dfbPlatformHandle;
-#endif
 
     SeatData m_seatData;
     GSource* m_eventSource;

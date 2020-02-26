@@ -26,5 +26,3 @@ if (USE_INPUT_LIBINPUT OR USE_VIRTUAL_KEYBOARD)
     add_definitions(-DKEY_INPUT_HANDLING_LIBINPUT=1)
 endif ()
 
-
-#add_definitions(-DPLATFORM_BRCM=1) # Special DFB code handling for broadcom platforms

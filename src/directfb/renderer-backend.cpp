@@ -39,11 +39,7 @@
 
 #define OPENGL_ES_2 1
 
-#if defined(PLATFORM_BRCM)
-#include <default_directfb.h>
-#else
 #include <directfb.h>
-#endif /* PLATFORM_BRCM */
 
 namespace Directfb {
 
