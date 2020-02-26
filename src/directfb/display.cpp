@@ -360,6 +360,7 @@ GSourceFuncs EventSource::sourceFuncs = {
 void Display::unregisterDirectFBDisplayPlatform()
 {
     if (m_dfb) {
+        /* Add Platform Specific code */
 #if defined(PLATFORM_BRCM)
         if(m_dfbPlatformHandle) {
             DBPL_UnregisterDirectFBDisplayPlatform(m_dfbPlatformHandle);
@@ -401,6 +402,7 @@ bool Display::initDirectFB()
 
 bool Display::registerDirectFBDisplayPlatform()
 {
+    /* Add Platform Specific code */
 #if defined(PLATFORM_BRCM)
     if(0 == m_dfbPlatformHandle)
         DBPL_RegisterDirectFBDisplayPlatform(&m_dfbPlatformHandle, m_dfb);
