@@ -182,7 +182,7 @@ struct wpe_renderer_backend_egl_offscreen_target_interface wpeframework_renderer
     // get_native_window
     [](void* data) -> EGLNativeWindowType
     {
-        return nullptr;
+        return (EGLNativeWindowType) 0;
     },
 };
 
