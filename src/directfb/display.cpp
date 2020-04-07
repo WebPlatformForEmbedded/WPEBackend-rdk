@@ -217,9 +217,8 @@ handleKeyEvent(uint32_t  time_,
     }
     struct wpe_input_keyboard_event event = { time_, keysym, unicode, state ? true : false, seatData->xkb.modifiers };
     EventDispatcher::singleton().sendEvent( event );
-
-    fprintf(stdout, "DIET_%s : key_id 0x%X , key_sym 0x%X, key_code 0x%X xkb_keysym_t 0x%X unicode %u modifiers %u\n",
-                                    state == DIET_KEYPRESS ? "KEYPRESS":"KEYRELEASE", key_id, key_symbol, key_code, keysym, unicode, seatData->xkb.modifiers);
+    //fprintf(stdout, "DIET_%s : key_id 0x%X , key_sym 0x%X, key_code 0x%X xkb_keysym_t 0x%X unicode %u modifiers %u\n",
+    //                                state == DIET_KEYPRESS ? "KEYPRESS":"KEYRELEASE", key_id, key_symbol, key_code, keysym, unicode, seatData->xkb.modifiers);
     return;
 }
 
@@ -285,7 +284,7 @@ handleDfbEvent(DFBEvent &event, gpointer data)
             }
         }
         default:
-            fprintf(stdout, "!!!!!!!!!! UnHandled Event Class %d  !!!!!!!!!!\n", event.clazz);
+            //fprintf(stdout, "!!!!!!!!!! UnHandled Event Class %d  !!!!!!!!!!\n", event.clazz);
             break;
     }
 }
@@ -467,7 +466,7 @@ void Display::initializeEventSource(IDirectFBWindow *dfb_window)
     g_source_set_can_recurse(m_eventSource, TRUE);
     g_source_attach(m_eventSource, g_main_context_get_thread_default());
     g_source_set_callback (m_eventSource, static_cast<GSourceFunc>(NULL), &m_seatData, NULL);
-    fprintf(stdout, "Initialized with G_SOURCE input handling\n");
+    //fprintf(stdout, "Initialized with G_SOURCE input handling\n");
     return;
 }
 
