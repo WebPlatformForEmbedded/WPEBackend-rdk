@@ -64,6 +64,7 @@ private:
     GPtrArray* m_motionEventDataArray;
     GPtrArray* m_buttonEventDataArray;
     GPtrArray* m_axisEventDataArray;
+    GMainContext *m_mainContext;
 };
 
 } // namespace Westeros

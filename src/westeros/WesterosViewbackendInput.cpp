@@ -140,7 +140,7 @@ void WesterosViewbackendInput::handleKeyEvent(void* userData, uint32_t key, uint
     g_ptr_array_add(me.m_keyEventDataArray, eventData);
     lock.unlock();
 
-    g_idle_add_full(G_PRIORITY_DEFAULT, [](gpointer data) -> gboolean
+    g_main_context_invoke(me.m_mainContext, [](gpointer data) -> gboolean
     {
         KeyEventData *e = (KeyEventData*)data;
 
@@ -221,7 +221,7 @@ void WesterosViewbackendInput::handleKeyEvent(void* userData, uint32_t key, uint
                 { e->time, keysym, e->key, !!e->state, modifiers };
         wpe_view_backend_dispatch_keyboard_event(backend_input.m_viewbackend, &event);
         return G_SOURCE_REMOVE;
-    }, eventData, nullptr);
+    }, eventData);
 }
 
 gboolean WesterosViewbackendInput::repeatRateTimeout(void* userData)
@@ -271,7 +271,7 @@ void WesterosViewbackendInput::pointerHandleMotion( void *userData, uint32_t tim
     g_ptr_array_add(me.m_motionEventDataArray, eventData);
     lock.unlock();
 
-    g_idle_add_full(G_PRIORITY_DEFAULT, [](gpointer data) -> gboolean
+    g_main_context_invoke(me.m_mainContext, [](gpointer data) -> gboolean
     {
         MotionEventData *e = (MotionEventData*)data;
 
@@ -293,7 +293,7 @@ void WesterosViewbackendInput::pointerHandleMotion( void *userData, uint32_t tim
         lock.unlock();
         delete e;
         return G_SOURCE_REMOVE;
-    }, eventData, nullptr);
+    }, eventData);
 }
 
 struct ButtonEventData
@@ -317,7 +317,7 @@ void WesterosViewbackendInput::pointerHandleButton( void *userData, uint32_t tim
     g_ptr_array_add(me.m_buttonEventDataArray, eventData);
     lock.unlock();
 
-    g_idle_add_full(G_PRIORITY_DEFAULT, [](gpointer data) -> gboolean
+    g_main_context_invoke(me.m_mainContext, [](gpointer data) -> gboolean
     {
         ButtonEventData *e = (ButtonEventData*)data;
 
@@ -336,7 +336,7 @@ void WesterosViewbackendInput::pointerHandleButton( void *userData, uint32_t tim
         lock.unlock();
         delete e;
         return G_SOURCE_REMOVE;
-    }, eventData, nullptr);
+    }, eventData);
 }
 
 struct AxisEventData
@@ -358,7 +358,7 @@ void WesterosViewbackendInput::pointerHandleAxis( void *userData, uint32_t time,
     g_ptr_array_add(me.m_axisEventDataArray, eventData);
     lock.unlock();
 
-    g_idle_add_full(G_PRIORITY_DEFAULT, [](gpointer data) -> gboolean
+    g_main_context_invoke(me.m_mainContext, [](gpointer data) -> gboolean
     {
         AxisEventData *e = (AxisEventData*)data;
 
@@ -376,7 +376,7 @@ void WesterosViewbackendInput::pointerHandleAxis( void *userData, uint32_t time,
         lock.unlock();
         delete e;
         return G_SOURCE_REMOVE;
-    }, eventData, nullptr);
+    }, eventData);
 }
 
 WesterosViewbackendInput::WesterosViewbackendInput(struct wpe_view_backend* backend)
@@ -387,6 +387,7 @@ WesterosViewbackendInput::WesterosViewbackendInput(struct wpe_view_backend* back
  , m_motionEventDataArray(g_ptr_array_sized_new(4))
  , m_buttonEventDataArray(g_ptr_array_sized_new(4))
  , m_axisEventDataArray(g_ptr_array_sized_new(4))
+ , m_mainContext(g_main_context_get_thread_default())
 {
 }
 
@@ -425,7 +426,7 @@ void clearArray(GPtrArray *array)
     {
         g_ptr_array_foreach(array, [](gpointer data, gpointer user_data)
         {
-            g_idle_remove_by_data(data);
+            g_source_remove_by_user_data(data);
             delete (Data*)data;
         }, nullptr);
     }
@@ -433,18 +434,18 @@ void clearArray(GPtrArray *array)
 }
 
 template<class Data>
-void clearArraySafe(GPtrArray *array)
+void clearArraySafe(GMainContext *ctx, GPtrArray *array)
 {
-    g_idle_add_full(G_PRIORITY_HIGH, [](gpointer data) -> gboolean
+    g_main_context_invoke(ctx, [](gpointer data) -> gboolean
     {
         clearArray<Data>((GPtrArray*)data);
         return G_SOURCE_REMOVE;
-    }, array, nullptr);
+    }, array);
 }
 
 void WesterosViewbackendInput::clearDataArrays()
 {
-    if (g_main_context_is_owner(g_main_context_default()))
+    if (g_main_context_is_owner(m_mainContext))
     {
         clearArray<KeyEventData>(m_keyEventDataArray);
         clearArray<MotionEventData>(m_motionEventDataArray);
@@ -453,10 +454,10 @@ void WesterosViewbackendInput::clearDataArrays()
     }
     else
     {
-        clearArraySafe<KeyEventData>(m_keyEventDataArray);
-        clearArraySafe<MotionEventData>(m_motionEventDataArray);
-        clearArraySafe<ButtonEventData>(m_buttonEventDataArray);
-        clearArraySafe<AxisEventData>(m_axisEventDataArray);
+        clearArraySafe<KeyEventData>(m_mainContext, m_keyEventDataArray);
+        clearArraySafe<MotionEventData>(m_mainContext, m_motionEventDataArray);
+        clearArraySafe<ButtonEventData>(m_mainContext, m_buttonEventDataArray);
+        clearArraySafe<AxisEventData>(m_mainContext, m_axisEventDataArray);
     }
 }
 
