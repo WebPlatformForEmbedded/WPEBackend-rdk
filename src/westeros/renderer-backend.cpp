@@ -29,8 +29,9 @@
 
 #include <wpe/wpe-egl.h>
 
-#include <stdio.h>
+#include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <glib.h>
 #include <wayland-client.h>
 #include <wayland-egl.h>
@@ -200,7 +201,8 @@ private:
 
 Backend::Backend()
 {
-    m_display = wl_display_connect(nullptr);
+    const char* targetDisplay = getenv("WAYLAND_DISPLAY");
+    m_display = wl_display_connect(targetDisplay);
     if (!m_display)
         return;
 
