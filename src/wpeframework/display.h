@@ -59,7 +59,9 @@ public:
     };
 
 public:
-    KeyboardHandler (IKeyHandler* callback) : _callback(callback) {
+    KeyboardHandler (IKeyHandler* callback)
+        : _callback(callback)
+        , _modifiers(0) {
     }
     virtual ~KeyboardHandler() {
     }
