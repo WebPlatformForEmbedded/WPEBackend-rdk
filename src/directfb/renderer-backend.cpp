@@ -36,6 +36,7 @@
 #include <cstring>
 #include <stdio.h>
 #include <pthread.h>
+#include <cassert>
 
 #define OPENGL_ES_2 1
 
@@ -68,6 +69,7 @@ struct EGLTarget : public IPC::Client::Handler {
     virtual ~EGLTarget();
 
     void initialize(Backend& backend, uint32_t, uint32_t);
+    void resize(uint32_t, uint32_t);
 
     // IPC::Client::Handler
     void handleMessage(char*, size_t) override;
@@ -75,6 +77,9 @@ struct EGLTarget : public IPC::Client::Handler {
     struct wpe_renderer_backend_egl_target* target;
     IPC::Client ipcClient;
     void* nativeWindow;
+    void* dfbWindow;
+    bool windowSuspended;
+    DFBSurfaceCapabilities surfaceCaps;
     Backend* m_backend { nullptr };
     uint32_t width { 0 };
     uint32_t height { 0 };
@@ -83,6 +88,9 @@ struct EGLTarget : public IPC::Client::Handler {
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
     : target(target)
     , nativeWindow(nullptr)
+    , dfbWindow(nullptr)
+    , windowSuspended(false)
+    , surfaceCaps(DSCAPS_NONE)
 {
     ipcClient.initialize(*this, hostFd);
     Directfb::EventDispatcher::singleton().setIPC( ipcClient );
@@ -123,6 +131,43 @@ update_surface_capabilities(IDirectFBWindow *window ,DFBWindowDescription *Desc)
             Desc->surface_caps = DFBSurfaceCapabilities(dscaps_gl | dscaps_premultiplied | dscaps_buffer);
             g_strfreev(window_flags);
         }
+    }
+}
+
+void EGLTarget::resize(uint32_t w, uint32_t h)
+{
+    assert(dfbWindow);
+    IDirectFBWindow *dfb_window = reinterpret_cast<IDirectFBWindow*>(dfbWindow);
+
+    if(w <= 1 && h <= 1) {
+        // if width and height are 1 or less, the app is being made invisible, so we can free graphics memory by resizing the surface to a minimum
+        fprintf(stdout, "WPE Backend resize(): suspending DFB Window\n");
+
+        dfb_window->ResizeSurface(dfb_window, w, h);
+        windowSuspended = true;
+    }else if(windowSuspended) {
+        fprintf(stdout, "WPE Backend resize(): resuming DFB Window\n");
+
+        // if window was suspended previously and now we are restoring it by setting width and height to larger than 1, we need to resize the surface back to original size
+        dfb_window->ResizeSurface(dfb_window, this->width, this->height);
+        windowSuspended = false;
+    }
+
+    assert(nativeWindow);
+    IDirectFBSurface *dfb_surface = reinterpret_cast<IDirectFBSurface*>(nativeWindow);
+    dfb_surface->Clear(dfb_surface, 0x0, 0x0, 0x0, 0x0);
+    dfb_surface->Flip(dfb_surface, NULL, DSFLIP_WAITFORSYNC);
+
+    if (surfaceCaps & DSCAPS_DOUBLE){
+        // one more time since it's a double surface
+        dfb_surface->Clear(dfb_surface, 0x0, 0x0, 0x0, 0x0);
+        dfb_surface->Flip(dfb_surface, NULL, DSFLIP_WAITFORSYNC);
+    }else if(surfaceCaps & DSCAPS_TRIPLE){
+        // two more times since it's a triple surface
+        dfb_surface->Clear(dfb_surface, 0x0, 0x0, 0x0, 0x0);
+        dfb_surface->Flip(dfb_surface, NULL, DSFLIP_WAITFORSYNC);
+        dfb_surface->Clear(dfb_surface, 0x0, 0x0, 0x0, 0x0);
+        dfb_surface->Flip(dfb_surface, NULL, DSFLIP_WAITFORSYNC);
     }
 }
 
@@ -173,6 +218,8 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
 
     layer->Release( layer );
     nativeWindow = (void*)dfb_surface;
+    dfbWindow = (void*)dfb_window;
+    surfaceCaps = desc.surface_caps;
 
     this->width = width;
     this->height = height;
@@ -249,6 +296,8 @@ struct wpe_renderer_backend_egl_target_interface directfb_renderer_backend_egl_t
     // resize
     [](void* data, uint32_t width, uint32_t height)
     {
+        auto& target = *static_cast<Directfb::EGLTarget*>(data);
+        target.resize(width, height);
     },
     // frame_will_render
     [](void* data)
