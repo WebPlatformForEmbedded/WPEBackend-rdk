@@ -199,6 +199,29 @@ public:
         case KEY_BACKSLASH:
             keyCode = WPE_KEY_backslash;
             break;
+        case KEY_CAPSLOCK:
+            keyCode = WPE_KEY_Caps_Lock;
+            break;
+
+        case KEY_RED:
+            keyCode = WPE_KEY_Red;
+            break;
+        case KEY_GREEN:
+            keyCode = WPE_KEY_Green;
+            break;
+        case KEY_YELLOW:
+            keyCode = WPE_KEY_Yellow;
+            break;
+        case KEY_BLUE:
+            keyCode = WPE_KEY_Blue;
+            break;
+
+        case KEY_NUMERIC_POUND:
+            keyCode = WPE_KEY_sterling;
+            break;
+        case KEY_EURO:
+            keyCode = WPE_KEY_EuroSign;
+            break;
 
         default:
             break;

@@ -139,7 +139,6 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 }
 
 /* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
-      // Convert to SbKeyModifiers.
   unsigned int modifiers = 0;
 
   if (depressedMods & 1)
@@ -255,6 +254,7 @@ Display::~Display()
 }
 
 /* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
+    uint32_t actual_key = keycode + 8;
     uint32_t modifiers = 0;
     struct wpe_input_keyboard_event event{ TimeNow(), WPE::KeyMapper::KeyCodeToWpeKey(keycode), actual_key, !!actions, modifiers };
     IPC::Message message;
