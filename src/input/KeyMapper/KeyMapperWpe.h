@@ -30,7 +30,7 @@ public:
         case KEY_LINEFEED:
         case KEY_ENTER:
         case KEY_KPENTER:
-            keyCode = WPE_KEY_Linefeed;
+            keyCode = WPE_KEY_Return;
             break;
         case KEY_CLEAR:
             keyCode = WPE_KEY_Clear;

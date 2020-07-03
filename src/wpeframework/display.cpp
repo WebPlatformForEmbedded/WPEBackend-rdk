@@ -25,9 +25,9 @@
  */
 
 #include "display.h"
-#include <KeyMapper/KeyMapper.h>
 #include <cstring>
 #include <chrono>
+#include <KeyMapper/KeyMapperWpe.h>
 
 namespace WPEFramework {
 
