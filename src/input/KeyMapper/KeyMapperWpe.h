@@ -9,10 +9,9 @@ class KeyMapper {
 public:
     KeyMapper(const KeyMapper&) = delete;
     KeyMapper& operator=(const KeyMapper&) = delete;
-    KeyMapper()
-    {
-    }
+    KeyMapper() = default;
     ~KeyMapper() = default;
+
 public:
     static uint32_t KeyCodeToWpeKey(uint16_t code)
     {
