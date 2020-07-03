@@ -27,6 +27,7 @@
 #include "display.h"
 #include <cstring>
 #include <chrono>
+#include <KeyMapper/KeyMapperWpe.h>
 
 namespace WPEFramework {
 
@@ -108,12 +109,9 @@ void KeyboardHandler::RepeatDelayTimeout() {
 }
 
 void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
-    uint32_t keysym = wpe_input_xkb_context_get_key_code(wpe_input_xkb_context_get_default(), key, action == IKeyboard::pressed);
-    if (!keysym)
-	return;
 
     // Send the event, it is complete..
-    _callback->Key(action == IKeyboard::pressed, keysym, key, _modifiers, time);
+    _callback->Key(action == IKeyboard::pressed, WPE::KeyMapper::KeyCodeToWpeKey(key), key, _modifiers, time);
 }
 
 /* virtual */ void KeyboardHandler::Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action)
@@ -122,38 +120,35 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 }
 
 /* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size) {
-    auto* xkb = wpe_input_xkb_context_get_default();
-    auto* keymap = xkb_keymap_new_from_string(wpe_input_xkb_context_get_context(xkb), information, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    wpe_input_xkb_context_set_keymap(xkb, keymap);
-    xkb_keymap_unref(keymap);
 }
 
 /* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
     // IDK.
-    uint32_t actual_key = key + 8;
-    HandleKeyEvent(actual_key, action, time);
-
-    auto* keymap = wpe_input_xkb_context_get_keymap(wpe_input_xkb_context_get_default());
+    HandleKeyEvent(key, action, time);
 
     if (_repeatInfo.rate != 0) {
-        if (action == IKeyboard::released && _repeatData.key == actual_key) {
+        if (action == IKeyboard::released && _repeatData.key == key) {
             if (_repeatData.eventSource)
                 g_source_remove(_repeatData.eventSource);
             _repeatData = { 0, 0, IKeyboard::released, 0 };
         }
-        else if (action == IKeyboard::pressed
-            && keymap && xkb_keymap_key_repeats(keymap, actual_key)) {
-
-            if (_repeatData.eventSource)
-                g_source_remove(_repeatData.eventSource);
-
-            _repeatData = { actual_key, time, action, g_timeout_add(_repeatInfo.delay, static_cast<GSourceFunc>(repeatDelayTimeout), this) };
+        else if (action == IKeyboard::pressed) {
+        // TODO: add code to handle repeat key
         }
     }
 }
 
 /* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
-    _modifiers = wpe_input_xkb_context_get_modifiers(wpe_input_xkb_context_get_default(), depressedMods, latchedMods, lockedMods, group);
+  unsigned int modifiers = 0;
+
+  if (depressedMods & 1)
+    modifiers |= wpe_input_keyboard_modifier_shift;
+  if (depressedMods & 4)
+    modifiers |= wpe_input_keyboard_modifier_control;
+  if (depressedMods & 8)
+    modifiers |= wpe_input_keyboard_modifier_alt;
+
+  _modifiers = modifiers;
 }
 
 /* virtual */ void KeyboardHandler::Repeat(int32_t rate, int32_t delay) {
@@ -260,19 +255,8 @@ Display::~Display()
 
 /* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
     uint32_t actual_key = keycode + 8;
-
-    auto* xkb = wpe_input_xkb_context_get_default();
-    uint32_t keysym = wpe_input_xkb_context_get_key_code(xkb, actual_key, !!actions);
-    if (!keysym)
-        return;
-    auto* xkbState = wpe_input_xkb_context_get_state(xkb);
-    xkb_state_update_key(xkbState, actual_key, !!actions ? XKB_KEY_DOWN : XKB_KEY_UP);
-    uint32_t modifiers = wpe_input_xkb_context_get_modifiers(xkb,
-        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_DEPRESSED),
-        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LATCHED),
-        xkb_state_serialize_mods(xkbState, XKB_STATE_MODS_LOCKED),
-        xkb_state_serialize_layout(xkbState, XKB_STATE_LAYOUT_EFFECTIVE));
-    struct wpe_input_keyboard_event event{ TimeNow(), keysym, actual_key, !!actions, modifiers };
+    uint32_t modifiers = 0;
+    struct wpe_input_keyboard_event event{ TimeNow(), WPE::KeyMapper::KeyCodeToWpeKey(keycode), actual_key, !!actions, modifiers };
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
     std::memcpy(message.messageData, &event, sizeof(event));
