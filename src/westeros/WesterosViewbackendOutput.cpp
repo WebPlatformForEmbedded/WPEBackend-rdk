@@ -36,6 +36,17 @@ void WesterosViewbackendOutput::handleModeCallback( void *userData, uint32_t fla
     auto& me = *static_cast<WesterosViewbackendOutput*>(userData);
     if (!me.m_viewbackend || (flags != WesterosViewbackendModeCurrent))
         return;
+    // We will send an internal size change, now we need to update the output
+    // size of our nested compositor instance.  We have requested this compositor
+    // instance to be a repeater, but on devices where repeating composition is not
+    // supported by the Wayland-egl implementation, the compositor output size must
+    // be updated.  If the compositor were a repeater, it will perform no rendering but
+    // instead forward buffers to the upstream compositor and no compositor output size
+    // change would be required (but should be done anyway).
+    if (me.m_compositor )
+    {
+       WstCompositorSetOutputSize( me.m_compositor, width, height );
+    }
 
     ModeData *modeData = new ModeData { userData, width, height };
     g_ptr_array_add(me.m_modeDataArray, modeData);
