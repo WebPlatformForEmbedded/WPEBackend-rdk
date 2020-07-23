@@ -200,6 +200,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     desc.width  = width;
     desc.height = height;
     desc.pixelformat = DSPF_ABGR;
+    desc.surface_caps = DFBSurfaceCapabilities(DSCAPS_DOUBLE | DSCAPS_PREMULTIPLIED);
     desc.flags  = DFBWindowDescriptionFlags(DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT | DWDESC_CAPS | DWDESC_SURFACE_CAPS);
     desc.caps = DFBWindowCapabilities(DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER);
 
