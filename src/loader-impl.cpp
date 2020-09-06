@@ -62,6 +62,10 @@
 #include "wpeframework/interfaces.h"
 #endif
 
+#ifdef ENABLE_GAMEPAD
+#include "gamepad/interfaces.h"
+#endif
+
 extern "C" {
 
 struct wpe_renderer_host_interface noop_renderer_host_interface = {
@@ -182,6 +186,13 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
             return &wpeframework_view_backend_interface;
+#endif
+
+#ifdef ENABLE_GAMEPAD
+        if (!std::strcmp(object_name, "_wpe_gamepad_provider_interface"))
+            return &gamepad_provider_interface;
+        if (!std::strcmp(object_name, "_wpe_gamepad_interface"))
+            return &gamepad_interface;
 #endif
 
         return nullptr;
