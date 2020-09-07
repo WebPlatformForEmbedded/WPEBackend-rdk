@@ -3,6 +3,7 @@
 
 #include <glib.h>
 #include <utility>
+#include <mutex>
 #include <wayland-client.h>
 #include <westeros-compositor.h>
 
@@ -55,6 +56,7 @@ public:
 private:
     void clearDataArrays();
 
+    std::mutex m_evtMutex;
     WstCompositor* m_compositor;
     struct wpe_view_backend* m_viewbackend;
     HandlerData m_handlerData;
@@ -62,6 +64,7 @@ private:
     GPtrArray* m_motionEventDataArray;
     GPtrArray* m_buttonEventDataArray;
     GPtrArray* m_axisEventDataArray;
+    GMainContext *m_mainContext;
 };
 
 } // namespace Westeros

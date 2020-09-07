@@ -31,6 +31,7 @@
 #include "WesterosViewbackendOutput.h"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <westeros-compositor.h>
 
 namespace Westeros {
@@ -61,9 +62,21 @@ ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     input_handler = new WesterosViewbackendInput(backend);
     output_handler = new WesterosViewbackendOutput(backend);
     const char* nestedTargetDisplay = std::getenv("WAYLAND_DISPLAY");
+    if (!nestedTargetDisplay)
+    {
+        const char* identifier = std::getenv("CLIENT_IDENTIFIER");
+        if (identifier)
+        {
+            const char* tmp = strchr(identifier, ',');
+            if (tmp)
+                nestedTargetDisplay = tmp + 1;
+            else
+                nestedTargetDisplay = identifier;
+        }
+    }
     if (nestedTargetDisplay)
     {
-        fprintf(stderr, "ViewBackendWesteros: running as the nested compositor\n");
+        fprintf(stderr, "ViewBackendWesteros: running as the nested compositor (target = '%s')\n", nestedTargetDisplay);
         WstCompositorSetIsNested(compositor, true);
         WstCompositorSetIsRepeater(compositor, true);
         WstCompositorSetNestedDisplayName(compositor, nestedTargetDisplay);

@@ -36,6 +36,7 @@ private:
     uint32_t m_width;
     uint32_t m_height;
     GPtrArray* m_modeDataArray;
+    GMainContext *m_mainContext;
 };
 
 } // namespace Westeros

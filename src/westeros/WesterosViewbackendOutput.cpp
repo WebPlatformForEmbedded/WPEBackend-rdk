@@ -36,11 +36,22 @@ void WesterosViewbackendOutput::handleModeCallback( void *userData, uint32_t fla
     auto& me = *static_cast<WesterosViewbackendOutput*>(userData);
     if (!me.m_viewbackend || (flags != WesterosViewbackendModeCurrent))
         return;
+    // We will send an internal size change, now we need to update the output
+    // size of our nested compositor instance.  We have requested this compositor
+    // instance to be a repeater, but on devices where repeating composition is not
+    // supported by the Wayland-egl implementation, the compositor output size must
+    // be updated.  If the compositor were a repeater, it will perform no rendering but
+    // instead forward buffers to the upstream compositor and no compositor output size
+    // change would be required (but should be done anyway).
+    if (me.m_compositor )
+    {
+       WstCompositorSetOutputSize( me.m_compositor, width, height );
+    }
 
     ModeData *modeData = new ModeData { userData, width, height };
     g_ptr_array_add(me.m_modeDataArray, modeData);
 
-    g_idle_add_full(G_PRIORITY_DEFAULT, [](gpointer data) -> gboolean
+    g_main_context_invoke(me.m_mainContext, [](gpointer data) -> gboolean
     {
         ModeData *d = (ModeData*)data;
 
@@ -52,7 +63,7 @@ void WesterosViewbackendOutput::handleModeCallback( void *userData, uint32_t fla
         g_ptr_array_remove_fast(backend_output.m_modeDataArray, data);
         delete d;
         return G_SOURCE_REMOVE;
-    }, modeData, nullptr);
+    }, modeData);
 }
 
 void WesterosViewbackendOutput::handleDoneCallback( void *UserData )
@@ -69,6 +80,7 @@ WesterosViewbackendOutput::WesterosViewbackendOutput(struct wpe_view_backend* ba
  , m_width(800)
  , m_height(600)
  , m_modeDataArray(g_ptr_array_sized_new(4))
+ , m_mainContext(g_main_context_get_thread_default())
 {
 }
 
@@ -103,7 +115,7 @@ static void clearArray(GPtrArray *array)
     {
         g_ptr_array_foreach(array, [](gpointer data, gpointer user_data)
         {
-            g_idle_remove_by_data(data);
+            g_source_remove_by_user_data(data);
             delete (ModeData*)data;
         }, nullptr);
     }
@@ -112,17 +124,17 @@ static void clearArray(GPtrArray *array)
 
 void WesterosViewbackendOutput::clearDataArray()
 {
-    if (g_main_context_is_owner(g_main_context_default()))
+    if (g_main_context_is_owner(m_mainContext))
     {
         clearArray(m_modeDataArray);
     }
     else
     {
-        g_idle_add_full(G_PRIORITY_HIGH, [](gpointer data) -> gboolean
+        g_main_context_invoke(m_mainContext, [](gpointer data) -> gboolean
         {
             clearArray((GPtrArray*)data);
             return G_SOURCE_REMOVE;
-        }, m_modeDataArray, nullptr);
+        }, m_modeDataArray);
     }
 }
 
