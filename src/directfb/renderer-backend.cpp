@@ -83,7 +83,12 @@ struct EGLTarget : public IPC::Client::Handler {
     Backend* m_backend { nullptr };
     uint32_t width { 0 };
     uint32_t height { 0 };
+
+    // main window created by the web process. This is always the first window after WebProcess starts. All subsequent windows are usually popup windows
+    static IDirectFBWindow* mainWindow;
 };
+
+IDirectFBWindow* EGLTarget::mainWindow = NULL;
 
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
     : target(target)
@@ -99,7 +104,18 @@ EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
 EGLTarget::~EGLTarget()
 {
     ipcClient.deinitialize();
-    fprintf(stderr, "!!!!!!!!!! Not Implemented !!!!!!!!!!\n");
+    if(nativeWindow){
+        IDirectFBSurface *dfb_surface = reinterpret_cast<IDirectFBSurface*>(nativeWindow);
+        dfb_surface->Release(dfb_surface);
+    }
+
+    if(dfbWindow){
+        if(dfbWindow == mainWindow)
+            mainWindow = NULL;
+
+        IDirectFBWindow *dfb_window = reinterpret_cast<IDirectFBWindow*>(dfbWindow);
+        dfb_window->Release(dfb_window);
+    }
 }
 
 static void
@@ -205,6 +221,12 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     desc.caps = DFBWindowCapabilities(DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER);
 
     update_surface_capabilities(dfb_window, &desc);
+
+    if (mainWindow){
+        // don't give focus to non-main windows (i.e. webkit popups)
+        desc.caps = DFBWindowCapabilities(desc.caps | DWCAPS_NOFOCUS);
+    }
+    
     res = layer->CreateWindow( layer, &desc, &dfb_window );
 
     // clear window contents
@@ -225,7 +247,10 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     this->width = width;
     this->height = height;
 
-    m_backend->display.initializeEventSource(dfb_window);
+    if(!mainWindow){
+        mainWindow = dfb_window; // first window is always the main window
+        m_backend->display.initializeEventSource(dfb_window);
+    }
 }
 
 void EGLTarget::handleMessage(char* data, size_t size)
