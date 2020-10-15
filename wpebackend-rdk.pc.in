@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${exec_prefix}/lib
+
+Name: wpebackend-rdk-@WPEBACKEND_FDO_API_VERSION@
+Description: The WPEBackend-rdk library
+Version: @PROJECT_VERSION@
+Requires: wpe-1.0
+Cflags: -I${includedir}/wpe-rdk-@WPEBACKEND_RDK_API_VERSION@
+Libs: -L${libdir} -lWPEBackend-fdo-@WPEBACKEND_RDK_API_VERSION@
