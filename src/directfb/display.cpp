@@ -217,8 +217,8 @@ handleKeyEvent(uint32_t  time_,
     }
     struct wpe_input_keyboard_event event = { time_, keysym, unicode, state ? true : false, seatData->xkb.modifiers };
     EventDispatcher::singleton().sendEvent( event );
-    //fprintf(stdout, "DIET_%s : key_id 0x%X , key_sym 0x%X, key_code 0x%X xkb_keysym_t 0x%X unicode %u modifiers %u\n",
-    //                                state == DIET_KEYPRESS ? "KEYPRESS":"KEYRELEASE", key_id, key_symbol, key_code, keysym, unicode, seatData->xkb.modifiers);
+    WPEB_DFB_LOG_DEBUG("DIET_%s : key_id 0x%X , key_sym 0x%X, key_code 0x%X xkb_keysym_t 0x%X unicode %u modifiers %u\n",
+                                    state == DIET_KEYPRESS ? "KEYPRESS":"KEYRELEASE", key_id, key_symbol, key_code, keysym, unicode, seatData->xkb.modifiers);
     return;
 }
 
@@ -284,7 +284,7 @@ handleDfbEvent(DFBEvent &event, gpointer data)
             }
         }
         default:
-            //fprintf(stdout, "!!!!!!!!!! UnHandled Event Class %d  !!!!!!!!!!\n", event.clazz);
+            WPEB_DFB_LOG_DEBUG("!!!!!!!!!! UnHandled Event Class %d  !!!!!!!!!!\n", event.clazz);
             break;
     }
 }
@@ -417,13 +417,13 @@ Display::Display()
 
     m_seatData.xkb.keymap = xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
     if (!m_seatData.xkb.keymap){
-        fprintf(stderr, "Dfb::Display Couldnt create xkbKeymap\n");
-        abort();
+        WPEB_DFB_LOG_CRITICAL("Dfb::Display Couldnt create xkbKeymap\n");
+        WPEB_DFB_ABORT(0);
     }
     m_seatData.xkb.state = xkb_state_new(m_seatData.xkb.keymap);
     if (!m_seatData.xkb.state){
-        fprintf(stderr, "Dfb::Display Couldnt create xkbState\n");
-        abort();
+        WPEB_DFB_LOG_CRITICAL("Dfb::Display Couldnt create xkbState\n");
+        WPEB_DFB_ABORT(0);
     }
 
     m_seatData.xkb.indexes.control = xkb_keymap_mod_get_index(m_seatData.xkb.keymap, XKB_MOD_NAME_CTRL);
@@ -440,12 +440,12 @@ void Display::initializeEventSource(IDirectFBWindow *dfb_window)
     IDirectFBEventBuffer *eventBuffer = NULL;
 
     if(ret = m_dfb->CreateEventBuffer(m_dfb,&eventBuffer)) {
-        fprintf(stderr, "xxxxxxxxxx Create Direct FB Event Buffer failed xxxxxxxxxx %s", DirectFBErrorString(ret));
+        WPEB_DFB_LOG_CRITICAL("xxxxxxxxxx Create Direct FB Event Buffer failed xxxxxxxxxx %s", DirectFBErrorString(ret));
     } else {
         dfb_window->AttachEventBuffer(dfb_window, eventBuffer);
         dfb_window->RequestFocus(dfb_window);
     }
-    fprintf(stderr, "Initialize DirectFb Event Input handling\n");
+    WPEB_DFB_LOG_DEBUG("Initialize DirectFb Event Input handling\n");
 
     m_eventSource = g_source_new(&EventSource::sourceFuncs, sizeof(EventSource));
     auto* source = reinterpret_cast<EventSource*>(m_eventSource);
@@ -454,7 +454,7 @@ void Display::initializeEventSource(IDirectFBWindow *dfb_window)
 
 	if(source->eventBuffer) {
         if((ret = source->eventBuffer->CreateFileDescriptor(source->eventBuffer, &source->pfd.fd)) != DFB_OK) {
-            fprintf(stderr, "xxxxxxxxxx Couldnt Create FD from eventBuffer xxxxxxxxxx %s", DirectFBErrorString(ret));
+            WPEB_DFB_LOG_CRITICAL("xxxxxxxxxx Couldnt Create FD from eventBuffer xxxxxxxxxx %s", DirectFBErrorString(ret));
             source->pfd.fd = -1;
         }
     }
@@ -466,7 +466,7 @@ void Display::initializeEventSource(IDirectFBWindow *dfb_window)
     g_source_set_can_recurse(m_eventSource, TRUE);
     g_source_attach(m_eventSource, g_main_context_get_thread_default());
     g_source_set_callback (m_eventSource, static_cast<GSourceFunc>(NULL), &m_seatData, NULL);
-    //fprintf(stdout, "Initialized with G_SOURCE input handling\n");
+    WPEB_DFB_LOG_DEBUG("Initialized with G_SOURCE input handling\n");
     return;
 }
 

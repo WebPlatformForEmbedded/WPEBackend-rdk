@@ -56,12 +56,12 @@ struct Backend {
 Backend::Backend()
     : display(Directfb::Display::singleton())
 {
-    fprintf(stdout, "Platform DFB Backend Initialization\n");
+    WPEB_DFB_LOG_DEBUG("Platform DFB Backend Initialization\n");
 }
 
 Backend::~Backend()
 {
-    fprintf(stderr, "!!!!!!!!!! Not Implemented !!!!!!!!!!\n");
+    WPEB_DFB_LOG_WARNING("!!!!!!!!!! Not Implemented !!!!!!!!!!\n");
 }
 
 struct EGLTarget : public IPC::Client::Handler {
@@ -123,7 +123,7 @@ update_surface_capabilities(IDirectFBWindow *window ,DFBWindowDescription *Desc)
 {
     /* For WPE_DFB_WINDOW_FLAGS setenv is in mainc.pp  */
     const char * window_flags_str = getenv("WPE_DFB_WINDOW_FLAGS");
-    fprintf(stdout, "%s (window-flags for RDK = %s )\n", __FUNCTION__, window_flags_str );
+    WPEB_DFB_LOG_INFO("Using window-flags for DFB WINDOW = %s\n", window_flags_str);
 
     DFBSurfaceCapabilities dscaps_premultiplied = DSCAPS_NONE;
     DFBSurfaceCapabilities dscaps_buffer = DSCAPS_NONE;
@@ -157,12 +157,12 @@ void EGLTarget::resize(uint32_t w, uint32_t h)
 
     if(w <= 1 && h <= 1) {
         // if width and height are 1 or less, the app is being made invisible, so we can free graphics memory by resizing the surface to a minimum
-        fprintf(stdout, "WPE Backend resize(): suspending DFB Window\n");
+        WPEB_DFB_LOG_INFO("WPE Backend resize(): suspending DFB Window\n");
 
         dfb_window->ResizeSurface(dfb_window, w, h);
         windowSuspended = true;
     }else if(windowSuspended) {
-        fprintf(stdout, "WPE Backend resize(): resuming DFB Window\n");
+        WPEB_DFB_LOG_INFO("WPE Backend resize(): resuming DFB Window\n");
 
         // if window was suspended previously and now we are restoring it by setting width and height to larger than 1, we need to resize the surface back to original size
         dfb_window->ResizeSurface(dfb_window, this->width, this->height);
@@ -197,7 +197,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     IDirectFBWindow *dfb_window = NULL;
     DFBDisplayLayerConfig layerConfig;
 
-    fprintf(stdout, "!!!!!!!!!! EGLTarget::initialize Creating DFB Window !!!!!!!!!!\n");
+    WPEB_DFB_LOG_DEBUG("!!!!!!!!!! EGLTarget::initialize Creating DFB Window !!!!!!!!!!\n");
 
     m_backend = &backend;
 
@@ -209,7 +209,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     layer->SetCooperativeLevel( layer, DLSCL_SHARED );
     layer->GetConfiguration(layer, &layerConfig);
 
-    fprintf(stdout, "Requested WidthxHeight = %dx%d, Layer Configuration %dx%d\n", width, height, layerConfig.width, layerConfig.height);
+    WPEB_DFB_LOG_INFO("EGL Target Requested WidthxHeight = %dx%d, Layer Configuration %dx%d\n", width, height, layerConfig.width, layerConfig.height);
 
     desc.posx   = 0;
     desc.posy   = 0;
@@ -265,7 +265,7 @@ void EGLTarget::handleMessage(char* data, size_t size)
             break;
         }
         default:
-            fprintf(stderr, "EGLTarget: unhandled message\n");
+            WPEB_DFB_LOG_WARNING("EGLTarget: unhandled message\n");
     };
 }
 

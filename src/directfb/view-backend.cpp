@@ -99,12 +99,12 @@ ViewBackend::~ViewBackend()
 
 void ViewBackend::initialize()
 {
-    fprintf(stdout, "Platform DFB View Backend Initialization\n");
+    WPEB_DFB_LOG_DEBUG("Platform DFB View Backend Initialization\n");
 
     assert(m_display.width() != 0);
     assert(m_display.height() != 0);
 
-    fprintf(stdout, "DirectFB Display resolution: %dx%d\n", m_display.width(), m_display.height());
+    WPEB_DFB_LOG_INFO("Viewbackend initialize DirectFB Display resolution: %dx%d\n", m_display.width(), m_display.height());
 
     width = m_display.width();
     height = m_display.height();
@@ -119,7 +119,7 @@ void ViewBackend::initialize()
 
 void ViewBackend::handleFd(int)
 {
-    fprintf(stderr, "!!!!!!!!!! Not Implemented !!!!!!!!!!\n");
+    WPEB_DFB_LOG_WARNING("!!!!!!!!!! Not Implemented !!!!!!!!!!\n");
 }
 
 void ViewBackend::handleMessage(char* data, size_t size)
@@ -140,7 +140,7 @@ void ViewBackend::handleMessage(char* data, size_t size)
 			break;
 		}
 		default: {
-			fprintf(stderr, "ViewBackend: unhandled message\n");
+			WPEB_DFB_LOG_WARNING("ViewBackend: unhandled message\n");
 			break;
 		}
 	}

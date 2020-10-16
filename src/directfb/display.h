@@ -33,6 +33,8 @@
 #define DFB_EVENT_BUFFER_TIMOUT_SEC 0 /* seconds*/
 #define DFB_EVENT_BUFFER_TIMOUT_MS 100 /* MiliSeconds*/
 
+#include "dfb_backend_log.h"
+
 #include <array>
 #include <unordered_map>
 #include <utility>
