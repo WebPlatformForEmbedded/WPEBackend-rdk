@@ -33,6 +33,7 @@ list(APPEND WPE_PLATFORM_SOURCES
     src/wpeframework/renderer-backend.cpp
     src/wpeframework/view-backend.cpp
     src/wpeframework/display.cpp
+    src/wpeframework/compositorclient-get-surface.cpp
 )
 
 

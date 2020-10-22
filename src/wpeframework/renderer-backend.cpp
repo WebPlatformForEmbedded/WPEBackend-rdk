@@ -109,7 +109,7 @@ struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_inte
     // create
     [](int input) -> void*
     {
-        return nullptr;
+        return WPEFramework::Compositor::IDisplay::Instance(WPEFramework::DisplayName());
     },
     // destroy
     [](void* data)
