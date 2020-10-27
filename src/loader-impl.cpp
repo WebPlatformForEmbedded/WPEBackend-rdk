@@ -62,6 +62,10 @@
 #include "wpeframework/interfaces.h"
 #endif
 
+#ifdef BACKEND_ESSOS
+#include "essos/interfaces.h"
+#endif
+
 extern "C" {
 
 struct wpe_renderer_host_interface noop_renderer_host_interface = {
@@ -182,6 +186,18 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
             return &wpeframework_view_backend_interface;
+#endif
+
+#ifdef BACKEND_ESSOS
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface"))
+            return &essos_renderer_backend_egl_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_target_interface"))
+            return &essos_renderer_backend_egl_target_interface;
+        if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_offscreen_target_interface"))
+            return &essos_renderer_backend_egl_offscreen_target_interface;
+
+        if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
+            return &essos_view_backend_interface;
 #endif
 
         return nullptr;
