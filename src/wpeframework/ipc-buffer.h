@@ -64,6 +64,30 @@ struct FrameComplete {
 };
 static_assert(sizeof(FrameComplete) == Message::dataSize, "FrameComplete is of correct size");
 
+struct AdjustedDimensions {
+    uint32_t width;
+    uint32_t height;
+    uint8_t padding[24];
+
+    static const uint64_t code = 3;
+
+    static void construct(Message& message, uint32_t width, uint32_t height)
+    {
+        message.messageCode = code;
+
+        AdjustedDimensions& messageData = *reinterpret_cast<AdjustedDimensions*>(std::addressof(message.messageData));
+
+        messageData.width = width;
+        messageData.height = height;
+    }
+
+    static AdjustedDimensions& cast(Message& message)
+    {
+        return *reinterpret_cast<AdjustedDimensions*>(std::addressof(message.messageData));
+    }
+};
+static_assert(sizeof(AdjustedDimensions) == Message::dataSize, "AdjustedDimensions is of incorrect size");
+
 } // namespace IPC
 
 #endif // wpe_platform_ipc_compositor_client_h
