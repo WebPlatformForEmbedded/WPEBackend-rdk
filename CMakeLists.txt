@@ -16,6 +16,7 @@ option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE back
 option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL WPE backend" OFF)
 option(USE_BACKEND_VIV_IMX6_EGL "Whether to enable support for NXP's IMX6 EGL WPE backend" OFF)
 option(USE_BACKEND_WPEFRAMEWORK "WPEFramework abstraction layer is used as WPE backend" OFF)
+option(USE_BACKEND_ESSOS "Whether to enable support for the Essos WPE backend" OFF)
 
 option(USE_PLATFORM_BROADCOM "Whether the playback is based on Broadcom plugins" OFF)
 option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based offscreen target for westeros Mesa only" OFF)
@@ -132,6 +133,10 @@ endif ()
 
 if (USE_BACKEND_VIV_IMX6_EGL)
     include(src/viv-imx6/CMakeLists.txt)
+endif ()
+
+if (USE_BACKEND_ESSOS)
+    include(src/essos/CMakeLists.txt)
 endif ()
 
 add_library(WPEBackend-rdk SHARED ${WPE_PLATFORM_SOURCES})
