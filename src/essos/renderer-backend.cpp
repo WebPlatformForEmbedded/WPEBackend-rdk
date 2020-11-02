@@ -391,7 +391,8 @@ bool EGLTarget::updateKeyModifiers(unsigned int key, bool pressed)
 
 void EGLTarget::onKeyEvent(unsigned int key, bool pressed)
 {
-    updateKeyModifiers(key, pressed);
+    if (updateKeyModifiers(key, pressed))
+        return;
 
     uint32_t activeModifiers = inputModifiers;
     if (activeModifiers == wpe_input_keyboard_modifier_control) {  // only Ctrl is set
