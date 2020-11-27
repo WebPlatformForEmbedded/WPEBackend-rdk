@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(WPEBackend-rdk)
 
+set(WPEBACKEND_RDK_API_VERSION 1.0)
+
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -fno-exceptions -fno-strict-aliasing")
@@ -121,6 +123,16 @@ endif ()
 
 if (USE_BACKEND_WPEFRAMEWORK)
     include(src/wpeframework/CMakeLists.txt)
+
+    set(WPEBACKEND_RDK_PUBLIC_HEADERS
+        src/wpeframework/compositorclient-get-surface.h
+    )
+
+    install(
+        FILES ${WPEBACKEND_RDK_PUBLIC_HEADERS}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wpe-rdk-${WPEBACKEND_RDK_API_VERSION}/wpe
+    )
+
 endif ()
 
 if (USE_BACKEND_WAYLAND_EGL)
@@ -151,3 +163,9 @@ add_custom_command(TARGET WPEBackend-rdk
         COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so ${CMAKE_BINARY_DIR}/libWPEBackend-default.so
         )
 install(FILES ${CMAKE_BINARY_DIR}/libWPEBackend-default.so DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+
+configure_file(wpebackend-rdk.pc.in wpebackend-rdk-${WPEBACKEND_RDK_API_VERSION}.pc @ONLY)
+install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/wpebackend-rdk-${WPEBACKEND_RDK_API_VERSION}.pc"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+)
