@@ -251,6 +251,7 @@ Display::Display(IPC::Client& ipc, const std::string& name)
 
 Display::~Display()
 {
+    m_display->Release();
 }
 
 /* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
