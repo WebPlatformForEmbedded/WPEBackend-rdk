@@ -174,7 +174,7 @@ EGLTarget::~EGLTarget()
     ipcClient.deinitialize();
 
 #ifdef BACKEND_BCM_NEXUS_NXCLIENT
-    NEXUS_SurfaceClient_Release(reinterpret_cast<NEXUS_SurfaceClient*>(nativeWindow));
+    NXPL_DestroyNativeWindow(nativeWindow);
 #endif
 }
 
