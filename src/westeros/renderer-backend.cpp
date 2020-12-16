@@ -117,6 +117,7 @@ public:
     GSource source;
     GPollFD pfd;
     struct wl_display* display;
+    bool prepared;
 };
 
 GSourceFuncs EventSource::sourceFuncs = {
@@ -125,6 +126,9 @@ GSourceFuncs EventSource::sourceFuncs = {
     {
         auto* source = reinterpret_cast<EventSource*>(base);
         struct wl_display* display = source->display;
+
+        if (source->prepared)
+            return FALSE;
 
         *timeout = -1;
 
@@ -136,6 +140,7 @@ GSourceFuncs EventSource::sourceFuncs = {
         }
         wl_display_flush(display);
 
+        source->prepared = true;
         return FALSE;
     },
     // check
@@ -144,14 +149,19 @@ GSourceFuncs EventSource::sourceFuncs = {
         auto* source = reinterpret_cast<EventSource*>(base);
         struct wl_display* display = source->display;
 
+        if (!source->prepared)
+            return FALSE;
+
         if (source->pfd.revents & G_IO_IN) {
             if (wl_display_read_events(display) < 0) {
                 DEBUG_PRINT("Wayland::Display: error in wayland read\n");
                 return FALSE;
             }
+            source->prepared = false;
             return TRUE;
         } else {
             wl_display_cancel_read(display);
+            source->prepared = false;
             return FALSE;
         }
     },
@@ -213,8 +223,7 @@ Backend::Backend()
 
 Backend::~Backend()
 {
-    if (m_eventSource)
-        g_source_destroy(m_eventSource);
+    invalidate();
 
     if (m_compositor)
         wl_compositor_destroy(m_compositor);
@@ -227,6 +236,8 @@ Backend::~Backend()
 void Backend::invalidate()
 {
     if (m_eventSource) {
+        if (m_eventSource->prepared && m_display)
+            wl_display_cancel_read(m_display);
         g_source_destroy(m_eventSource);
         m_eventSource = nullptr;
     }
@@ -240,6 +251,7 @@ void Backend::initialize()
     m_eventSource = g_source_new(&EventSource::sourceFuncs, sizeof(EventSource));
     auto& source = *reinterpret_cast<EventSource*>(m_eventSource);
     source.display = m_display;
+    source.prepared = false;
 
     source.pfd.fd = wl_display_get_fd(m_display);
     source.pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
