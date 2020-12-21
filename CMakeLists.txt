@@ -12,7 +12,7 @@ option(USE_BACKEND_BCM_NEXUS_WAYLAND "Whether to enable support for the BCM_NEXU
 option(USE_BACKEND_BCM_RPI "Whether to enable support for the BCM_RPi WPE backend" OFF)
 option(USE_BACKEND_INTEL_CE "Whether to enable support for the Intel CE WPE backend" OFF)
 option(USE_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WPE backend" OFF)
-option(USE_BACKEND_DIRECTFB "Whether to enable support for the directfb WPE backend" ON)
+option(USE_BACKEND_DIRECTFB "Whether to enable support for the directfb WPE backend" OFF)
 option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
 option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL WPE backend" OFF)
 option(USE_BACKEND_VIV_IMX6_EGL "Whether to enable support for NXP's IMX6 EGL WPE backend" OFF)
