@@ -32,6 +32,11 @@
 #define ERROR_LOG(fmt, ...) fprintf(stderr, "[essos:renderer-backend.cpp:%u:%s] *** " fmt "\n", __LINE__, __func__, ##__VA_ARGS__)
 #define DEBUG_LOG(fmt, ...) if (enableDebugLogs()) fprintf(stderr, "[essos:renderer-backend.cpp:%u:%s] " fmt "\n", __LINE__, __func__, ##__VA_ARGS__)
 
+extern "C" {
+struct wl_display;
+int wl_display_flush (struct wl_display *display);
+}
+
 namespace Essos {
 
 static bool enableDebugLogs()
@@ -227,8 +232,14 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     pageHeight = height;
 
     DEBUG_LOG("initial page size=%ux%u", width, height);
-
-    eventSource = g_timeout_source_new(16); // 60 FPS
+    static int fps = []() -> int {
+        int result = -1;
+        const char *env = getenv("WPE_ESSOS_CYCLES_PER_SECOND");
+        if (env)
+            result = atoi(env);
+        return result < 0 ? 60 : result;
+    }();
+    eventSource = g_timeout_source_new(1000 / fps);
     g_source_set_callback(
         eventSource,
         [](gpointer data) -> gboolean {
@@ -345,6 +356,11 @@ void EGLTarget::frameRendered()
     ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
     ++shouldDispatchFrameComplete;
+
+    if ( EssContextGetUseWayland(essosCtx) ) {
+        void* display = EssContextGetWaylandDisplay( essosCtx );
+        wl_display_flush( (wl_display*) display );
+    }
 }
 
 bool EGLTarget::updateKeyModifiers(unsigned int key, bool pressed)
