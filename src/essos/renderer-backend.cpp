@@ -30,6 +30,7 @@
 #include "ipc-essos.h"
 
 #define ERROR_LOG(fmt, ...) fprintf(stderr, "[essos:renderer-backend.cpp:%u:%s] *** " fmt "\n", __LINE__, __func__, ##__VA_ARGS__)
+#define WARN_LOG(fmt, ...)  fprintf(stderr, "[essos:renderer-backend.cpp:%u:%s] Warning: " fmt "\n", __LINE__, __func__, ##__VA_ARGS__)
 #define DEBUG_LOG(fmt, ...) if (enableDebugLogs()) fprintf(stderr, "[essos:renderer-backend.cpp:%u:%s] " fmt "\n", __LINE__, __func__, ##__VA_ARGS__)
 
 extern "C" {
@@ -71,12 +72,17 @@ Backend::Backend()
     if ( error ) {
         const char *detail = EssContextGetLastErrorDetail(essosCtx);
         ERROR_LOG("Essos error: '%s'", detail);
+        if ( essosCtx ) {
+            EssContextDestroy(essosCtx);
+            essosCtx = nullptr;
+        }
     }
 }
 
 Backend::~Backend()
 {
-    EssContextDestroy(essosCtx);
+    if (essosCtx)
+        EssContextDestroy(essosCtx);
 }
 
 NativeDisplayType Backend::getDisplay() const
@@ -117,6 +123,7 @@ struct EGLTarget : public IPC::Client::Handler
     void onTouchDown(int id, int x, int y);
     void onTouchUp(int id);
     void onTouchMoution(int id, int x, int y);
+    void onTerminated();
 
     uint32_t getSourceTimeMs() const { return g_source_get_time(eventSource) / 1000; }
 
@@ -124,6 +131,7 @@ struct EGLTarget : public IPC::Client::Handler
     static EssKeyListener keyListener;
     static EssPointerListener pointerListener;
     static EssTouchListener touchListener;
+    static EssTerminateListener terminateListener;
 
     IPC::Client ipcClient;
 
@@ -180,6 +188,11 @@ EssTouchListener EGLTarget::touchListener = {
     nullptr
 };
 
+EssTerminateListener EGLTarget::terminateListener = {
+    // terminated
+    []( void *data ) { reinterpret_cast<EGLTarget*>(data)->onTerminated(); },
+};
+
 EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
     : target(target)
 {
@@ -200,6 +213,7 @@ void EGLTarget::stop()
         EssContextSetKeyListener(essosCtx, nullptr, nullptr);
         EssContextSetPointerListener(essosCtx, nullptr, nullptr);
         EssContextSetTouchListener(essosCtx, nullptr, nullptr);
+        EssContextSetTerminateListener(essosCtx, nullptr, nullptr);
 
         if (nativeWindow != 0) {
             if ( !EssContextDestroyNativeWindow(essosCtx, nativeWindow) ) {
@@ -225,6 +239,11 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
 {
     if (this->backend)
         return;
+
+    if (backend.essosCtx == nullptr) {
+        ERROR_LOG("No Essos context");
+        return;
+    }
 
     this->backend = &backend;
     essosCtx = backend.essosCtx;
@@ -280,6 +299,9 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     else if ( !EssContextSetTouchListener(essosCtx, this, &touchListener) ) {
         error = true;
     }
+    else if ( !EssContextSetTerminateListener(essosCtx, this, &terminateListener) ) {
+        error = true;
+    }
     else if ( !EssContextCreateNativeWindow(essosCtx, targetWidth, targetHeight, &nativeWindow) ) {
         error = true;
     }
@@ -294,6 +316,8 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     if ( error ) {
         const char *detail = EssContextGetLastErrorDetail(essosCtx);
         ERROR_LOG("Essos error: '%s'", detail);
+        stop();
+        return;
     }
 
     auto *wpexkb = wpe_input_xkb_context_get_default();
@@ -321,7 +345,8 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
 
 gboolean EGLTarget::runEventLoopOnce()
 {
-    EssContextRunEventLoopOnce( essosCtx );
+    if (essosCtx)
+        EssContextRunEventLoopOnce( essosCtx );
 
     if ( shouldDispatchFrameComplete ) {
         --shouldDispatchFrameComplete;
@@ -351,6 +376,9 @@ void EGLTarget::resize(uint32_t width, uint32_t height)
 
 void EGLTarget::frameRendered()
 {
+    if (essosCtx == nullptr)
+       return;
+
     IPC::Message message;
     message.messageCode = IPC::Essos::MsgType::FRAMERENDERED;
     ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
@@ -568,6 +596,12 @@ void EGLTarget::onDisplaySize(int width, int height)
     IPC::Message message;
     IPC::Essos::DisplaySize::construct(message, width, height);
     ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
+}
+
+void EGLTarget::onTerminated()
+{
+    WARN_LOG("Terminated. Essos ctx = %p", essosCtx);
+    stop();
 }
 
 EGLNativeWindowType EGLTarget::getNativeWindow() const
