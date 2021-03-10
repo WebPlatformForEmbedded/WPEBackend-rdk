@@ -75,6 +75,7 @@ Backend::Backend()
         if ( essosCtx ) {
             EssContextDestroy(essosCtx);
             essosCtx = nullptr;
+            abort();
         }
     }
 }
@@ -317,6 +318,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
         const char *detail = EssContextGetLastErrorDetail(essosCtx);
         ERROR_LOG("Essos error: '%s'", detail);
         stop();
+        abort();
         return;
     }
 
