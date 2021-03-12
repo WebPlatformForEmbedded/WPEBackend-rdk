@@ -152,10 +152,16 @@ void Client::initialize(Handler& handler, int fd)
 
 void Client::deinitialize()
 {
-    if (m_source)
+    if (m_source) {
         g_source_destroy(m_source);
-    if (m_socket)
+        g_source_unref(m_source);
+        m_source = nullptr;
+    }
+    if (m_socket) {
+        g_socket_close(m_socket, NULL);
         g_object_unref(m_socket);
+        m_socket = nullptr;
+    }
 
     m_handler = nullptr;
 }
