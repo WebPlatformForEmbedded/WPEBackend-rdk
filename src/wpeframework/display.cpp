@@ -243,7 +243,7 @@ Display::Display(IPC::Client& ipc, const std::string& name)
 
         g_source_add_poll(m_eventSource, &source->pfd);
         g_source_set_name(m_eventSource, "[WPE] Display");
-        g_source_set_priority(m_eventSource, G_PRIORITY_HIGH + 30);
+        g_source_set_priority(m_eventSource, G_PRIORITY_DEFAULT);
         g_source_set_can_recurse(m_eventSource, TRUE);
         g_source_attach(m_eventSource, g_main_context_get_thread_default());
     }
