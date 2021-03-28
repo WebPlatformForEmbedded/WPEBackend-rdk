@@ -144,6 +144,15 @@ void ViewBackend::handleMessage(char* data, size_t size)
         triggered = true;
         break;
     }
+    case IPC::AdjustedDimensions::code:
+    {
+        IPC::AdjustedDimensions dimensions = IPC::AdjustedDimensions::cast(message);
+
+        wpe_view_backend_dispatch_set_size(backend, dimensions.width, dimensions.height);
+
+        fprintf(stdout,"Adjusted (internal buffer) dimensions to %u x %u\n", dimensions.width, dimensions.height);
+        break;
+    }
     default:
         fprintf(stderr, "ViewBackend: unhandled message\n");
     }
