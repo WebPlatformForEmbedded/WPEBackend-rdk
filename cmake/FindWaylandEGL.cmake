@@ -31,10 +31,12 @@
 find_package(PkgConfig)
 pkg_check_modules(PC_WAYLAND_EGL wayland-egl)
 
+set(WAYLAND_EGL_FOUND ${PC_WAYLAND_EGL_FOUND} CACHE INTERNAL "" FORCE)
+
 find_path(WAYLAND_EGL_INCLUDE_DIRS
     NAMES wayland-egl.h
     HINTS ${PC_WAYLAND_EGL_INCLUDE_DIRS} ${PC_WAYLAND_EGL_INCLUDEDIR}
-)
+) 
 
 foreach (_library ${PC_WAYLAND_EGL_LIBRARIES})
     find_library(WAYLAND_EGL_LIBRARIES_${_library} ${_library}

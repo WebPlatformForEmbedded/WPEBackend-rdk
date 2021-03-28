@@ -1,4 +1,5 @@
 find_package(Wayland QUIET)
+find_package(WaylandEGL QUIET)
 find_package(EGL REQUIRED)
 find_package(compositorclient REQUIRED)
 
@@ -7,9 +8,7 @@ list(APPEND WPE_PLATFORM_LIBRARIES
     compositorclient::compositorclient
 )
 
-if (WAYLAND_FOUND)
-    find_package(WaylandEGL REQUIRED)
-
+if (WAYLAND_FOUND AND WAYLAND_EGL_FOUND)
     list(APPEND WPE_PLATFORM_INCLUDE_DIRECTORIES
         ${WAYLAND_INCLUDE_DIRS}
         ${WAYLAND_EGL_INCLUDE_DIRS}
@@ -24,6 +23,18 @@ if (WAYLAND_FOUND)
         ${WAYLAND_EGL_CFLAGS}
     )
 
+    list(APPEND WPE_PLATFORM_SOURCES
+        src/wpeframework/compositorclient-get-surface.cpp
+    )
+
+    set(WPEBACKEND_RDK_PUBLIC_HEADERS
+        src/wpeframework/compositorclient-get-surface.h
+    )
+
+    install(
+        FILES ${WPEBACKEND_RDK_PUBLIC_HEADERS}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wpe-rdk-${WPEBACKEND_RDK_API_VERSION}/wpe
+    )
 endif()
 
 add_definitions(-DBACKEND_WPEFRAMEWORK=1)
@@ -33,7 +44,4 @@ list(APPEND WPE_PLATFORM_SOURCES
     src/wpeframework/renderer-backend.cpp
     src/wpeframework/view-backend.cpp
     src/wpeframework/display.cpp
-    src/wpeframework/compositorclient-get-surface.cpp
 )
-
-

@@ -123,16 +123,6 @@ endif ()
 
 if (USE_BACKEND_WPEFRAMEWORK)
     include(src/wpeframework/CMakeLists.txt)
-
-    set(WPEBACKEND_RDK_PUBLIC_HEADERS
-        src/wpeframework/compositorclient-get-surface.h
-    )
-
-    install(
-        FILES ${WPEBACKEND_RDK_PUBLIC_HEADERS}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wpe-rdk-${WPEBACKEND_RDK_API_VERSION}/wpe
-    )
-
 endif ()
 
 if (USE_BACKEND_WAYLAND_EGL)
