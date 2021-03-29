@@ -75,6 +75,32 @@ EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
 void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uint32_t height)
 {
     surface = display.Create(DisplayName(), width, height);
+
+    using width_t = decltype (width);
+    using height_t = decltype (height);
+
+    using s_width_t = decltype (surface->Width());
+    using s_height_t = decltype (surface->Width());
+
+    static_assert(std::is_integral<s_width_t>::value, "Integral type required");
+    static_assert(std::is_integral<s_height_t>::value, "Integral type required");
+
+    static_assert(sizeof(s_width_t) == sizeof(width_t));
+    static_assert(sizeof(s_height_t) == sizeof(height_t));
+
+    s_width_t s_width = surface->Width();
+    s_height_t s_height = surface->Height();
+
+    assert(s_width >= 0 && s_height >= 0);
+
+    if (width != static_cast <width_t>(s_width) || height != static_cast<height_t>(s_height)) {
+        IPC::Message message;
+
+        IPC::AdjustedDimensions::construct(message, surface->Width(), surface->Height());
+
+        ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
+    }
+
     display.Backend(backend);
 }
 
