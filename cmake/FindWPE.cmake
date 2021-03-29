@@ -29,7 +29,13 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 find_package(PkgConfig)
-pkg_check_modules(PC_WPE QUIET wpe-1.0)
+if(NOT PC_WPE_FOUND)
+pkg_search_module(PC_WPE wpe-1.0)
+endif()
+
+if(NOT PC_WPE_FOUND)
+pkg_search_module(PC_WPE wpe-0.2)
+endif()
 
 find_path(WPE_INCLUDE_DIRS
     NAMES wpe/wpe.h
@@ -37,7 +43,7 @@ find_path(WPE_INCLUDE_DIRS
 )
 
 find_library(WPE_LIBRARIES
-    NAMES wpe-1.0
+    NAMES ${PC_WPE_LIBRARIES}
     HINTS ${PC_WPE_LIBDIR} ${PC_WPE_LIBRARY_DIRS}
 )
 
