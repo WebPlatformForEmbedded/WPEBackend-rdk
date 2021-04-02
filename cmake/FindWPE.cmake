@@ -37,17 +37,23 @@ if(NOT PC_WPE_FOUND)
 pkg_search_module(PC_WPE wpe-0.2)
 endif()
 
-find_path(WPE_INCLUDE_DIRS
-    NAMES wpe/wpe.h
-    HINTS ${PC_WPE_INCLUDEDIR} ${PC_WPE_INCLUDE_DIRS}
-)
+if(PC_WPE_FOUND)
+    set(WPE_VERSION ${PC_WPE_VERSION} CACHE INTERNAL "")
 
-find_library(WPE_LIBRARIES
-    NAMES ${PC_WPE_LIBRARIES}
-    HINTS ${PC_WPE_LIBDIR} ${PC_WPE_LIBRARY_DIRS}
-)
+    find_path(WPE_INCLUDE_DIRS
+        NAMES wpe/wpe.h
+        HINTS ${PC_WPE_INCLUDEDIR} ${PC_WPE_INCLUDE_DIRS}
+    )
 
-mark_as_advanced(WPE_INCLUDE_DIRS WPE_LIBRARIES)
+    find_library(WPE_LIBRARIES
+        NAMES ${PC_WPE_LIBRARIES}
+        HINTS ${PC_WPE_LIBDIR} ${PC_WPE_LIBRARY_DIRS}
+    )
 
-include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WPE REQUIRED_VARS WPE_INCLUDE_DIRS WPE_LIBRARIES)
+    mark_as_advanced(WPE_INCLUDE_DIRS WPE_LIBRARIES)
+
+    include(FindPackageHandleStandardArgs)
+    FIND_PACKAGE_HANDLE_STANDARD_ARGS(WPE REQUIRED_VARS WPE_INCLUDE_DIRS WPE_LIBRARIES)
+else()
+    message(FATAL_ERROR "libwpe not found!")
+endif()
