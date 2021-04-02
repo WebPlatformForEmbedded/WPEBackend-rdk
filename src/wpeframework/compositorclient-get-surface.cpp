@@ -38,7 +38,7 @@ extern "C" {
 __attribute__((visibility("default")))
 void* wpe_compositorclient_get_parent_surface(struct wpe_renderer_backend_egl* backend)
 {
-    Compositor::IDisplay::ISurface* surface;
+    Compositor::IDisplay::ISurface* surface = nullptr;
     void* nativesurface = nullptr;
     EGLNativeWindowType nativewindow;
 
@@ -53,11 +53,13 @@ void* wpe_compositorclient_get_parent_surface(struct wpe_renderer_backend_egl* b
         surface = display->SurfaceByName(Compositor::IDisplay::SuggestedName());
 
     //get the native surface
-    if (surface) {
+    if (surface != nullptr) {
 	    nativewindow = surface->Native();
 #if defined WL_EGL_PLATFORM
 	    // On wayland EGLNativeWindowType is struct wl_egl_window * that contains the surface
-	    nativesurface  = nativewindow->surface;
+	    if(nativewindow != nullptr){
+            nativesurface  = reinterpret_cast<wl_egl_window*>(nativewindow)->surface;
+        }
 #endif
     }
 
