@@ -219,6 +219,16 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
     _callback->Touch(index, state, x, y);
 }
 
+gboolean vsyncCallback (gpointer data) {
+    Compositor::IDisplay* _display = static_cast <Compositor::IDisplay *> (data);
+
+    if (_display != nullptr) {
+        /* int */ _display->Process (0);
+    }
+
+    return TRUE;
+}
+
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
@@ -247,6 +257,23 @@ Display::Display(IPC::Client& ipc, const std::string& name)
         g_source_set_can_recurse(m_eventSource, TRUE);
         g_source_attach(m_eventSource, g_main_context_get_thread_default());
     }
+    else {
+        const char* _MAXFPS = ::getenv("WEBKIT_MAXIMUM_FPS");
+
+        uint32_t _fps = 60;
+
+        if (_MAXFPS != nullptr) {
+            _fps = ::atoi(_MAXFPS);
+
+            if (_fps == 0 || _fps > 60) {
+                fprintf (stdout, "WEBKIT_MAXIMUM_FPS out of range. Limiting to 60 frames per second.\n");
+                _fps = 60;
+            }
+        }
+
+        /* guint */ g_timeout_add (1000/_fps, vsyncCallback, m_display);
+    }
+
 }
 
 Display::~Display()
