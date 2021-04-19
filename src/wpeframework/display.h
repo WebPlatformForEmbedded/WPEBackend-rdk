@@ -225,7 +225,10 @@ public:
     void SendEvent(wpe_input_touch_event& event);
     void SendEvent(wpe_input_touch_event_raw& event);
 
+    bool vSyncCallback ();
+
 private:
+
     virtual void Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
     virtual void Key(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action);
     virtual void WheelMotion(const int16_t horizontal, const int16_t vertical) override;
@@ -235,7 +238,6 @@ private:
 
 private:
     IPC::Client& m_ipc;
-    GSource* m_eventSource;
     KeyboardHandler m_keyboard;
     WheelHandler m_wheel;
     PointerHandler m_pointer;

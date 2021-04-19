@@ -31,50 +31,6 @@
 
 namespace WPEFramework {
 
-// -----------------------------------------------------------------------------------------
-// GLIB framework thread, to keep the wayland loop a-live
-// -----------------------------------------------------------------------------------------
-class EventSource {
-public:
-    static GSourceFuncs sourceFuncs;
-
-    GSource source;
-    GPollFD pfd;
-    Compositor::IDisplay* display;
-    signed int result;
-};
-
-GSourceFuncs EventSource::sourceFuncs = {
-    // prepare
-    [](GSource* base, gint* timeout) -> gboolean {
-        *timeout = -1;
-        return FALSE;
-    },
-    // check
-    [](GSource* base) -> gboolean {
-        EventSource& source(*(reinterpret_cast<EventSource*>(base)));
-
-        source.result = source.display->Process(source.pfd.revents & G_IO_IN);
-
-        return (source.result >= 0 ? TRUE : FALSE);
-    },
-    // dispatch
-    [](GSource* base, GSourceFunc, gpointer) -> gboolean {
-        EventSource& source(*(reinterpret_cast<EventSource*>(base)));
-
-        if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
-            fprintf(stderr, "Compositor::Display: error in compositor dispatch\n");
-            return G_SOURCE_REMOVE;
-        }
-
-        source.pfd.revents = 0;
-        return G_SOURCE_CONTINUE;
-    },
-    nullptr, // finalize
-    nullptr, // closure_callback
-    nullptr, // closure_marshall
-};
-
 namespace {
     inline uint32_t TimeNow()
     {
@@ -234,7 +190,6 @@ gboolean vsyncCallback (gpointer data) {
 // -----------------------------------------------------------------------------------------
 Display::Display(IPC::Client& ipc, const std::string& name)
     : m_ipc(ipc)
-    , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_wheel(this)
     , m_pointer(this)
@@ -242,40 +197,51 @@ Display::Display(IPC::Client& ipc, const std::string& name)
     , m_backend(nullptr)
     , m_display(Compositor::IDisplay::Instance(name))
 {
-    int descriptor = m_display->FileDescriptor();
-    EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
-
-    if (descriptor != -1) {
-        source->display = m_display;
-        source->pfd.fd = descriptor;
-        source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
-        source->pfd.revents = 0;
-
-        g_source_add_poll(m_eventSource, &source->pfd);
-        g_source_set_name(m_eventSource, "[WPE] Display");
-        g_source_set_priority(m_eventSource, G_PRIORITY_DEFAULT);
-        g_source_set_can_recurse(m_eventSource, TRUE);
-        g_source_attach(m_eventSource, g_main_context_get_thread_default());
-    }
-    else {
-        const char* _MAXFPS = ::getenv("WEBKIT_MAXIMUM_FPS");
-
-        uint32_t _fps = 60;
-
-        if (_MAXFPS != nullptr) {
-            _fps = ::atoi(_MAXFPS);
-
-            if (_fps == 0 || _fps > 60) {
-                fprintf (stdout, "WEBKIT_MAXIMUM_FPS out of range. Limiting to 60 frames per second.\n");
-                _fps = 60;
-            }
-        }
-
-        /* guint */ g_timeout_add (1000/_fps, vsyncCallback, m_display);
-    }
-
 }
 
+static constexpr gint FD_TIMEOUT () {
+    // Milliseconds
+    // -1, infinite
+    // 0, immediate
+
+    return 0;
+}
+
+bool Display::vSyncCallback () {
+    static_assert (std::is_integral < gint >::value);
+    static_assert (std::is_integral < decltype (m_display->FileDescriptor ()) >::value);
+    static_assert (std::numeric_limits < gint >::min () >= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::min ());
+    static_assert (std::numeric_limits < gint >::max () <= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::max ());
+
+    static gint _fd = m_display->FileDescriptor ();
+
+    gushort _flags = 0;
+
+    if (_fd != -1) {
+        // Watchh for data to read, errors or broken connection
+        GPollFD _gfd =  {_fd, /* events to poll */ G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL, /* resulting events of poll */ _flags};
+
+        switch (g_poll (&_gfd, /* number of entries */ 1, /* timeout */ FD_TIMEOUT ())) {
+            case -1 :   // Error
+            case 0  :   // Timed out, always for timeout equal 0
+                        _flags = 0;
+                        break;
+            default :   // Return value should match g_poll's second field
+                        // Signal there is data to read
+                        _flags = _gfd.revents & (G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL);
+        }
+     }
+
+    static_assert (std::is_integral < decltype (_flags) >::value);
+    static_assert (std::numeric_limits < decltype (_flags) >::min () >= std::numeric_limits < uint32_t >::min ());
+    static_assert (std::numeric_limits < decltype (_flags) >::max () <= std::numeric_limits < uint32_t >::max ());
+
+    // If the loop 'runs' too fast check the implementation of Process
+    // You may want to add a delay based on the underlying platform just there
+
+    return (m_display != nullptr ? 0 == m_display->Process (_flags) : false);
+}
+ 
 Display::~Display()
 {
     m_display->Release();

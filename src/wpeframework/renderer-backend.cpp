@@ -185,6 +185,12 @@ struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_e
     {
         WPEFramework::EGLTarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
 
+        /* bool */ target.display.vSyncCallback ();
+
+        // The message has to be sent regardless of the vSyncCallback result.
+        // Otherwise, the 'frame complete' is never sent, possibly breaking 
+        // the feedback loop.
+
         IPC::Message message;
         IPC::BufferCommit::construct(message);
         target.ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);

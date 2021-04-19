@@ -45,16 +45,11 @@ struct ViewBackend : public IPC::Host::Handler {
     void handleFd(int) override { };
     void handleMessage(char*, size_t) override;
 
-    void ackBufferCommit();
     void initialize();
-
-    static gboolean vsyncCallback(gpointer);
 
     struct wpe_view_backend* backend;
     std::array<struct wpe_input_touch_event_raw, 10> touchpoints;
     IPC::Host ipcHost;
-    GSource* vsyncSource;
-    bool triggered;
 };
 
 static uint32_t MaxFPS() {
@@ -72,22 +67,14 @@ static uint32_t MaxFPS() {
  
 ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     : backend(backend)
-    , vsyncSource(g_timeout_source_new(MaxFPS()))
-    , triggered(false)
 {
     ipcHost.initialize(*this);
-
-    g_source_set_callback(vsyncSource, static_cast<GSourceFunc>(vsyncCallback), this, nullptr);
-    g_source_set_priority(vsyncSource, G_PRIORITY_HIGH + 30);
-    g_source_set_can_recurse(vsyncSource, TRUE);
-    g_source_attach(vsyncSource, g_main_context_get_thread_default());
 
     touchpoints.fill({ wpe_input_touch_event_type_null, 0, 0, 0, 0 });
 }
 
 ViewBackend::~ViewBackend()
 {
-    g_source_destroy(vsyncSource);
     ipcHost.deinitialize();
 }
 
@@ -141,7 +128,10 @@ void ViewBackend::handleMessage(char* data, size_t size)
     }
     case IPC::BufferCommit::code:
     {
-        triggered = true;
+    	IPC::Message message;
+    	IPC::FrameComplete::construct(message);
+    	ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
+
         break;
     }
     case IPC::AdjustedDimensions::code:
@@ -172,27 +162,6 @@ void ViewBackend::initialize()
         height = ::atoi(height_text);
     }
     wpe_view_backend_dispatch_set_size( backend, width, height);
-}
-
-void ViewBackend::ackBufferCommit()
-{
-    IPC::Message message;
-    IPC::FrameComplete::construct(message);
-    ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
-
-    wpe_view_backend_dispatch_frame_displayed(backend);
-}
-
-gboolean ViewBackend::vsyncCallback(gpointer data)
-{
-    ViewBackend* impl = static_cast<ViewBackend*>(data);
-
-    if (impl->triggered) {
-        impl->triggered = false;
-        impl->ackBufferCommit();
-    }
-
-    return (G_SOURCE_CONTINUE);
 }
 
 } // namespace WPEFramework
