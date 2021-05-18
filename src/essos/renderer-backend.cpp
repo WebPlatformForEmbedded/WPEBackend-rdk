@@ -311,7 +311,8 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     }
     else {
         // Request page resize if needed
-        onDisplaySize(targetWidth, targetHeight);
+        if ( pageWidth != targetWidth && pageHeight != targetHeight )
+            onDisplaySize(targetWidth, targetHeight);
     }
 
     if ( error ) {
@@ -592,8 +593,6 @@ void EGLTarget::onTouchMoution(int id, int x, int y)
 
 void EGLTarget::onDisplaySize(int width, int height)
 {
-    if (pageWidth == width && pageHeight == height)
-        return;
     DEBUG_LOG("display size=%dx%d, page size=%dx%d", width, height, pageWidth, pageHeight);
     IPC::Message message;
     IPC::Essos::DisplaySize::construct(message, width, height);
