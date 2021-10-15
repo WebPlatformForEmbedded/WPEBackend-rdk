@@ -1,4 +1,4 @@
-find_package(westeros REQUIRED)
+find_package(Westeros REQUIRED)
 find_package(WaylandEGL REQUIRED)
 
 add_definitions(-DBACKEND_WESTEROS=1)

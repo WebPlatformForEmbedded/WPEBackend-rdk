@@ -1,9 +1,10 @@
-# - Try to find Athol.
+# - Try to find westeros-egl.
 # Once done, this will define
 #
-#  WESTEROSEGL_FOUND - system has westeros-egl.
 #  WESTEROSEGL_INCLUDE_DIRS - the westeros-egl include directories
 #  WESTEROSEGL_LIBRARIES - link these to use westeros-egl.
+#
+#  WesterosEGL::WesterosEGL, the westeros-egl library
 #
 # Copyright (C) 2014 Igalia S.L.
 #
@@ -28,9 +29,27 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(WesterosEGL_FIND_QUIETLY)
+    set(_WESTEROSEGL_MODE QUIET)
+elseif(WesterosEGL_FIND_REQUIRED)
+    set(_WESTEROSEGL_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(WESTEROSEGL westeros-egl)
+pkg_check_modules(WESTEROSEGL ${_WESTEROSEGL_MODE} westeros-egl)
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WESTEROSEGL DEFAULT_MSG WESTEROSEGL_FOUND)
+find_package_handle_standard_args(WesterosEGL DEFAULT_MSG WESTEROSEGL_FOUND WESTEROSEGL_INCLUDE_DIRS WESTEROSEGL_LIBRARIES)
+mark_as_advanced(WESTEROSEGL_INCLUDE_DIRS WESTEROSEGL_LIBRARIES)
+
+if(WesterosEGL_FOUND AND NOT TARGET WesterosEGL::WesterosEGL)
+    add_library(WesterosEGL::WesterosEGL UNKNOWN IMPORTED)
+    set_target_properties(WesterosEGL::WesterosEGL PROPERTIES
+            IMPORTED_LOCATION "${WESTEROSEGL_LIB}"
+            INTERFACE_LINK_LIBRARIES "${WESTEROSEGL_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${WESTEROSEGL_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${WESTEROSEGL_INCLUDE_DIRS}"
+            )
+endif()
+
 

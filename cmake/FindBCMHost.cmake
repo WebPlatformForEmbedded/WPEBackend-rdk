@@ -1,8 +1,8 @@
 # - Try to find bcm_host.
 # Once done, this will define
 #
-#  BCM_HOST_INCLUDE_DIRS - the bcm_host include directories
-#  BCM_HOST_LIBRARIES - link these to use bcm_host.
+#  BCM_HOST_FOUND - the bcm_host is available
+#  BCMHost::BCMHost - The bcm_host library and all its dependecies
 #
 # Copyright (C) 2015 Igalia S.L.
 #
@@ -27,10 +27,36 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(BCMHost_FIND_QUIETLY)
+    set(_BCM_HOST_MODE QUIET)
+elseif(BCMHost_FIND_REQUIRED)
+    set(_BCM_HOST_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(BCM_HOST bcm_host)
+pkg_check_modules(PC_BCM_HOST ${_BCM_HOST_MODE} bcm_host)
 
-include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(BCM_HOST DEFAULT_MSG BCM_HOST_LIBRARIES)
+if(${PC_BCM_HOST_FOUND})
+    find_library(BCM_HOST_LIBRARY bcm_host
+        HINTS ${PC_BCM_LIBDIR} ${PC_BCM_LIBRARY_DIRS}
+    )
+    set(BCM_LIBRARIES ${PC_BCM_HOST_LIBRARIES})
 
-mark_as_advanced(BCM_HOST_INCLUDE_DIRS BCM_HOST_LIBRARIES)
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(BCMHost DEFAULT_MSG PC_BCM_HOST_FOUND PC_BCM_HOST_INCLUDE_DIRS BCM_HOST_LIBRARY PC_BCM_HOST_LIBRARIES)
+    mark_as_advanced(PC_BCM_HOST_INCLUDE_DIRS PC_BCM_HOST_LIBRARIES)
+
+    if(BCMHost_FOUND AND NOT TARGET BCMHost::BCMHost)
+        add_library(BCMHost::BCMHost UNKNOWN IMPORTED)
+
+        set_target_properties(BCMHost::BCMHost
+            PROPERTIES
+                IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+                IMPORTED_LOCATION "${BCM_HOST_LIBRARY}"
+                INTERFACE_COMPILE_DEFINITIONS "PLATFORM_RPI"
+                INTERFACE_COMPILE_OPTIONS "${PC_BCM_HOST_CFLAGS_OTHER}"
+                INTERFACE_INCLUDE_DIRECTORIES "${PC_BCM_HOST_INCLUDE_DIRS}"
+                INTERFACE_LINK_LIBRARIES "${PC_BCM_HOST_LIBRARIES}"
+                )
+    endif()
+endif()

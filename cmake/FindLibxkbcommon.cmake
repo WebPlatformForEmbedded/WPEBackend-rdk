@@ -28,9 +28,26 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(Libxkbcommon_FIND_QUIETLY)
+    set(_LIBXKBCOMMON_MODE QUIET)
+elseif(Libxkbcommon_FIND_REQUIRED)
+    set(_LIBXKBCOMMON_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(LIBXKBCOMMON xkbcommon)
+pkg_check_modules(LIBXKBCOMMON ${_LIBXKBCOMMON_MODE} xkbcommon)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Libxkbcommon REQUIRED_VARS LIBXKBCOMMON_FOUND
+find_package_handle_standard_args(Libxkbcommon REQUIRED_VARS LIBXKBCOMMON_FOUND LIBXKBCOMMON_LIBRARIES
                                   FOUND_VAR LIBXKBCOMMON_FOUND)
+mark_as_advanced(LIBXKBCOMMON_LIBRARIES)
+
+if(Libxkbcommon_FOUND AND NOT TARGET Libxkbcommon::Libxkbcommon)
+    add_library(Libxkbcommon::Libxkbcommon UNKNOWN IMPORTED)
+    set_target_properties(Libxkbcommon::Libxkbcommon PROPERTIES
+            IMPORTED_LOCATION "${LIBXKBCOMMON_LIBRARY}"
+            INTERFACE_LINK_LIBRARIES "${LIBXKBCOMMON_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${LIBXKBCOMMON_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBXKBCOMMON_INCLUDE_DIRS}"
+            )
+endif()

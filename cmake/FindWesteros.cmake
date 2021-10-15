@@ -1,9 +1,10 @@
-# - Try to find Athol.
+# - Try to find westeros.
 # Once done, this will define
 #
-#  WESTEROS_FOUND - system has westeros.
 #  WESTEROS_INCLUDE_DIRS - the westeros include directories
 #  WESTEROS_LIBRARIES - link these to use westeros.
+#
+#  Westeros::Westeros, the westeros library
 #
 # Copyright (C) 2014 Igalia S.L.
 #
@@ -28,9 +29,14 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-find_package(PkgConfig)
-pkg_check_modules(PC_WESTEROS westeros-compositor)
+if(Westeros_FIND_QUIETLY)
+    set(_WESTEROS_MODE QUIET)
+elseif(Westeros_FIND_REQUIRED)
+    set(_WESTEROS_MODE REQUIRED)
+endif()
 
+find_package(PkgConfig)
+pkg_check_modules(PC_WESTEROS ${_WESTEROS_MODE} westeros-compositor)
 find_path(WESTEROS_INCLUDE_DIRS
     NAMES westeros-compositor.h
     HINTS ${PC_WESTEROS_INCLUDE_DIRS} ${PC_WESTEROS_INCLUDEDIR}
@@ -42,6 +48,17 @@ find_library(WESTEROS_LIBRARIES
 )
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WESTEROS DEFAULT_MSG WESTEROS_FOUND)
-
+find_package_handle_standard_args(Westeros DEFAULT_MSG WESTEROS_FOUND WESTEROS_INCLUDE_DIRS WESTEROS_LIBRARIES)
 mark_as_advanced(WESTEROS_INCLUDE_DIRS WESTEROS_LIBRARIES)
+
+if(Westeros_FOUND AND NOT TARGET Westeros::Westeros)
+    add_library(Westeros::Westeros UNKNOWN IMPORTED)
+    set_target_properties(Westeros::Westeros PROPERTIES
+            IMPORTED_LOCATION "${WESTEROS_LIB}"
+            INTERFACE_LINK_LIBRARIES "${WESTEROS_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${WESTEROS_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${WESTEROS_INCLUDE_DIRS}"
+            
+endif()
+
+

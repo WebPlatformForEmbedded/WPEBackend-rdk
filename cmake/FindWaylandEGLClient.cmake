@@ -1,9 +1,10 @@
-# - Try to find the wayland egl abstraction client wrapper.
+# - Try to find wayland-egl.
 # Once done, this will define
 #
-#  WAYLAND_EGL_CLIENT_FOUND - system has WPEFramework compositor client.
-#  WAYLAND_EGL_CLIENT_INCLUDE_DIRS - the WPEFramework compositor client include directories
-#  WAYLAND_EGL_CLIENT_LIBRARIES - link these to use WPEFramework compositor client.
+#  WAYLAND_EGL_CLEINT_INCLUDE_DIRS - the wayland-egl include directories
+#  WAYLAND_EGL_CLEINT_LIBRARIES - link these to use wayland-egl.
+#
+#  WaylandEGLClient::WaylandEGLClient, the wayland-egl library
 #
 # Copyright (C) 2017 Metrological B.V.
 #
@@ -28,10 +29,27 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(WaylandEGLClient_FIND_QUIETLY)
+    set(_WAYLAND_EGL_CLEINT_MODE QUIET)
+elseif(WaylandEGLClient_FIND_REQUIRED)
+    set(_WAYLAND_EGL_CLEINT_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(WAYLAND_EGL_CLIENT wayland-egl-client)
+pkg_check_modules(WAYLAND_EGL_CLEINT ${_WAYLAND_EGL_CLEINT_MODE} wayland-egl-client)
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WAYLAND_EGL_CLIENT DEFAULT_MSG WAYLAND_EGL_CLIENT_FOUND)
+find_package_handle_standard_args(WaylandEGLClient DEFAULT_MSG WAYLAND_EGL_CLEINT_FOUND WAYLAND_EGL_CLEINT_INCLUDE_DIRS WAYLAND_EGL_CLEINT_LIBRARIES)
+mark_as_advanced(WAYLAND_EGL_CLEINT_INCLUDE_DIRS WAYLAND_EGL_CLEINT_LIBRARIES)
 
-mark_as_advanced(WAYLAND_EGL_CLIENT_INCLUDE_DIRS WAYLAND_EGL_CLIENT_LIBRARIES)
+if(WaylandEGLClient_FOUND AND NOT TARGET WaylandEGLClient::WaylandEGLClient)
+    add_library(WaylandEGLClient::WaylandEGLClient UNKNOWN IMPORTED)
+    set_target_properties(WaylandEGLClient::WaylandEGLClient PROPERTIES
+            IMPORTED_LOCATION "${WAYLAND_EGL_CLEINT_LIB}"
+            INTERFACE_LINK_LIBRARIES "${WAYLAND_EGL_CLEINT_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${WAYLAND_EGL_CLEINT_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_EGL_CLEINT_INCLUDE_DIRS}"
+            )
+endif()
+
+

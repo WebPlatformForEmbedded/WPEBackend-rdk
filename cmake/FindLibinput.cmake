@@ -28,8 +28,25 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(Libinput_FIND_QUIETLY)
+    set(_LIBINPUT_MODE QUIET)
+elseif(Libinput_FIND_REQUIRED)
+    set(_LIBINPUT_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(LIBINPUT libinput)
+pkg_check_modules(LIBINPUT ${_LIBINPUT_MODE} libinput)
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(LIBINPUT DEFAULT_MSG LIBINPUT_FOUND)
+find_package_handle_standard_args(Libinput DEFAULT_MSG LIBINPUT_FOUND)
+mark_as_advanced(LIBINPUT_INCLUDE_DIRS LIBINPUT_LIBRARIES)
+
+if(Libinput_FOUND AND NOT TARGET Libinput::Libinput)
+    add_library(Libinput::Libinput UNKNOWN IMPORTED)
+    set_target_properties(Libinput::Libinput PROPERTIES
+            IMPORTED_LOCATION "${LIBINPUT_LIBRARY}"
+            INTERFACE_LINK_LIBRARIES "${LIBINPUT_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${LIBINPUT_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBINPUT_INCLUDE_DIRS}"
+            )
+endif()

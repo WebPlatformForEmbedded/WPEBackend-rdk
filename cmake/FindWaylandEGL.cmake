@@ -3,7 +3,8 @@
 #
 #  WAYLAND_EGL_INCLUDE_DIRS - the wayland-egl include directories
 #  WAYLAND_EGL_LIBRARIES - link these to use wayland-egl.
-#  WAYLAND_EGL_CFLAGS - Platform specific cflags to use.
+#
+#  WaylandEGL::WaylandEGL, the wayland-egl library
 #
 # Copyright (C) 2015 Igalia S.L.
 #
@@ -28,26 +29,31 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(WaylandEGL_FIND_QUIETLY)
+    set(_WAYLAND_EGL_MODE QUIET)
+elseif(WaylandEGL_FIND_REQUIRED)
+    set(_WAYLAND_EGL_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(PC_WAYLAND_EGL wayland-egl)
+pkg_check_modules(WAYLAND_EGL ${_WAYLAND_EGL_MODE} wayland-egl)
 
-set(WAYLAND_EGL_FOUND ${PC_WAYLAND_EGL_FOUND} CACHE INTERNAL "" FORCE)
-
-find_path(WAYLAND_EGL_INCLUDE_DIRS
-    NAMES wayland-egl.h
-    HINTS ${PC_WAYLAND_EGL_INCLUDE_DIRS} ${PC_WAYLAND_EGL_INCLUDEDIR}
-) 
-
-foreach (_library ${PC_WAYLAND_EGL_LIBRARIES})
-    find_library(WAYLAND_EGL_LIBRARIES_${_library} ${_library}
-        HINTS ${PC_WAYLAND_EGL_LIBRARY_DIRS} ${PC_WAYLAND_EGL_LIBDIR}
-    )
-    set(WAYLAND_EGL_LIBRARIES ${WAYLAND_EGL_LIBRARIES} ${WAYLAND_EGL_LIBRARIES_${_library}})
-endforeach ()
-
-set(WAYLAND_EGL_CFLAGS ${PC_WAYLAND_EGL_CFLAGS})
+find_library(WAYLAND_EGL_LIB NAMES wayland-egl
+        HINTS ${WAYLAND_EGL_LIBDIR} ${WAYLAND_EGL_LIBRARY_DIRS})
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WAYLAND_EGL DEFAULT_MSG WAYLAND_EGL_LIBRARIES)
-
+find_package_handle_standard_args(WaylandEGL DEFAULT_MSG WAYLAND_EGL_FOUND WAYLAND_EGL_INCLUDE_DIRS WAYLAND_EGL_LIBRARIES WAYLAND_EGL_LIB)
+set(WAYLAND_EGL_LIBRARIES ${WAYLAND_EGL_LIBRARIES} ${WAYLAND_EGL_LIB})
 mark_as_advanced(WAYLAND_EGL_INCLUDE_DIRS WAYLAND_EGL_LIBRARIES)
+
+if(WaylandEGL_FOUND AND NOT TARGET WaylandEGL::WaylandEGL)
+    add_library(WaylandEGL::WaylandEGL UNKNOWN IMPORTED)
+    set_target_properties(WaylandEGL::WaylandEGL PROPERTIES
+            IMPORTED_LOCATION "${WAYLAND_EGL_LIB}"
+            INTERFACE_LINK_LIBRARIES "${WAYLAND_EGL_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${WAYLAND_EGL_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_EGL_INCLUDE_DIRS}"
+            )
+endif()
+
+
