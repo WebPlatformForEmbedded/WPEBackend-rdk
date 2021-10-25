@@ -19,6 +19,5 @@ find_library(ESSOS_LIBRARIES essos)
 
 include(FindPackageHandleStandardArgs)
 
-find_package_handle_standard_args(ESSOS DEFAULT_MSG ESSOS_LIBRARIES)
-
+find_package_handle_standard_args(Essos DEFAULT_MSG ESSOS_LIBRARIES)
 mark_as_advanced(ESSOS_LIBRARIES)

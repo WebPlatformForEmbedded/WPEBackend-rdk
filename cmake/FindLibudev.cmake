@@ -1,4 +1,4 @@
-# - Try to find libinput.
+# - Try to find libudev.
 # Once done, this will define
 #
 #  LIBUDEV_FOUND - system has udev.
@@ -28,8 +28,25 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(Libudev_FIND_QUIETLY)
+    set(_LIBUDEV_MODE QUIET)
+elseif(Libudev_FIND_REQUIRED)
+    set(_LIBUDEV_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(LIBUDEV libudev)
+pkg_check_modules(LIBUDEV ${_LIBUDEV_MODE} libudev)
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(LIBUDEV DEFAULT_MSG LIBUDEV_FOUND)
+find_package_handle_standard_args(Libudev DEFAULT_MSG LIBUDEV_FOUND LIBUDEV_INCLUDE_DIRS LIBUDEV_LIBRARIES)
+mark_as_advanced(LIBUDEV_INCLUDE_DIRS LIBUDEV_LIBRARIES)
+
+if(Libudev_FOUND AND NOT TARGET Libudev::Libudev)
+    add_library(Libudev::Libudev UNKNOWN IMPORTED)
+    set_target_properties(Libudev::Libudev PROPERTIES
+            IMPORTED_LOCATION "${LIBUDEV_LIBRARY}"
+            INTERFACE_LINK_LIBRARIES "${LIBUDEV_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${LIBUDEV_DEFINITIONS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBUDEV_INCLUDE_DIRS}"
+            )
+endif()

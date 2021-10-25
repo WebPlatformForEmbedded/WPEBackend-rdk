@@ -50,10 +50,20 @@ if(PC_WPE_FOUND)
         HINTS ${PC_WPE_LIBDIR} ${PC_WPE_LIBRARY_DIRS}
     )
 
-    mark_as_advanced(WPE_INCLUDE_DIRS WPE_LIBRARIES)
-
-    include(FindPackageHandleStandardArgs)
-    FIND_PACKAGE_HANDLE_STANDARD_ARGS(WPE REQUIRED_VARS WPE_INCLUDE_DIRS WPE_LIBRARIES)
 else()
     message(FATAL_ERROR "libwpe not found!")
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(WPE REQUIRED_VARS WPE_INCLUDE_DIRS WPE_LIBRARIES)
+mark_as_advanced(WPE_INCLUDE_DIRS WPE_LIBRARIES)
+
+if(WPE_FOUND AND NOT TARGET WPE::WPE)
+    add_library(WPE::WPE SHARED IMPORTED)
+    set_target_properties(WPE::WPE PROPERTIES
+            IMPORTED_LOCATION "${WPE_LIBRARY}"
+            INTERFACE_LINK_LIBRARIES "${WPE_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${WPE_CFLAGS}"
+            INTERFACE_INCLUDE_DIRECTORIES "${WPE_INCLUDE_DIRS}"
+    )
 endif()

@@ -1,9 +1,10 @@
-# - Try to find Wayland.
-# Once done, this will define
+# - Try to find Wayland
+# Once done this will define
+#  WAYLAND_FOUND - System has Nexus
+#  WAYLAND_INCLUDE_DIRS - The Nexus include directories
+#  WAYLAND_LIBRARIES    - The libraries needed to use Nexus
 #
-#  WAYLAND_FOUND - system has Wayland.
-#  WAYLAND_INCLUDE_DIRS - the Wayland include directories
-#  WAYLAND_LIBRARIES - link these to use Wayland.
+#  Wayland::Wayland, the wayland server library
 #
 # Copyright (C) 2014 Igalia S.L.
 #
@@ -28,8 +29,28 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+if(Wayland_FIND_QUIETLY)
+    set(_WAYLAND_SERVER_MODE QUIET)
+elseif(Wayland_FIND_REQUIRED)
+    set(_WAYLAND_SERVER_MODE REQUIRED)
+endif()
+
 find_package(PkgConfig)
-pkg_check_modules(WAYLAND wayland-client>=1.2 wayland-server)
+pkg_check_modules(WAYLAND ${_WAYLAND_SERVER_MODE} wayland-client>=1.2 wayland-server)
+
+find_library(WAYLAND_LIB NAMES wayland-client
+        HINTS ${WAYLAND_LIBDIR} ${WAYLAND_LIBRARY_DIRS})
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(WAYLAND DEFAULT_MSG WAYLAND_LIBRARIES)
+find_package_handle_standard_args(Wayland DEFAULT_MSG WAYLAND_FOUND WAYLAND_INCLUDE_DIRS WAYLAND_LIBRARIES WAYLAND_LIB)
+mark_as_advanced(WAYLAND_INCLUDE_DIRS WAYLAND_LIBRARIES)
+
+if(Wayland_FOUND AND NOT TARGET Wayland::Wayland)
+    add_library(Wayland::Wayland UNKNOWN IMPORTED)
+    set_target_properties(Wayland::Wayland PROPERTIES
+            IMPORTED_LOCATION "${WAYLAND_LIB}"
+            INTERFACE_LINK_LIBRARIES "${WAYLAND_LIBRARIES}"
+            INTERFACE_COMPILE_OPTIONS "${WAYLAND_CFLAGS_OTHER}"
+            INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_INCLUDE_DIRS}"
+            )
+endif()
