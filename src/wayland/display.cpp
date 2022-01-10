@@ -336,6 +336,11 @@ static const struct wl_keyboard_listener g_keyboardListener = {
         auto it = seatData.inputClients.find(surface);
         if (it != seatData.inputClients.end() && seatData.keyboard.target.first == it->first)
             seatData.keyboard.target = { nullptr, nullptr };
+
+        if (seatData.repeatData.key && seatData.repeatData.eventSource) {
+            g_source_remove(seatData.repeatData.eventSource);
+            seatData.repeatData = { 0, 0, 0, 0 };
+        }
     },
     // key
     [](void* data, struct wl_keyboard*, uint32_t serial, uint32_t time, uint32_t key, uint32_t state)
