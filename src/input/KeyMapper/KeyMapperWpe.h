@@ -222,6 +222,19 @@ public:
             keyCode = WPE_KEY_EuroSign;
             break;
 
+        case KEY_PLAY:
+            keyCode = WPE_KEY_AudioPlay;
+            break;
+        case KEY_PAUSE:
+            keycode = WPE_KEY_AudioPause;
+            break;
+        case KEY_FASTFORWARD:
+            keyCode = WPE_KEY_AudioForward;
+            break;
+        case KEY_REWIND:
+            keyCode = WPE_KEY_AudioRewind;
+            break;
+
         default:
             break;
         }
