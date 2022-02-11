@@ -226,7 +226,7 @@ public:
             keyCode = WPE_KEY_AudioPlay;
             break;
         case KEY_PAUSE:
-            keycode = WPE_KEY_AudioPause;
+            keyCode = WPE_KEY_AudioPause;
             break;
         case KEY_FASTFORWARD:
             keyCode = WPE_KEY_AudioForward;
