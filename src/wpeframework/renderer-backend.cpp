@@ -85,8 +85,8 @@ void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uin
     static_assert(std::is_integral<s_width_t>::value, "Integral type required");
     static_assert(std::is_integral<s_height_t>::value, "Integral type required");
 
-    static_assert(sizeof(s_width_t) == sizeof(width_t));
-    static_assert(sizeof(s_height_t) == sizeof(height_t));
+    static_assert(sizeof(s_width_t) == sizeof(width_t), "Variable size mismatch");
+    static_assert(sizeof(s_height_t) == sizeof(height_t), "Variable size mismatch");
 
     s_width_t s_width = surface->Width();
     s_height_t s_height = surface->Height();

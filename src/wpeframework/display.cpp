@@ -208,10 +208,10 @@ static constexpr gint FD_TIMEOUT () {
 }
 
 bool Display::vSyncCallback () {
-    static_assert (std::is_integral < gint >::value);
-    static_assert (std::is_integral < decltype (m_display->FileDescriptor ()) >::value);
-    static_assert (std::numeric_limits < gint >::min () >= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::min ());
-    static_assert (std::numeric_limits < gint >::max () <= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::max ());
+    static_assert (std::is_integral < gint >::value, "Integral type required");
+    static_assert (std::is_integral < decltype (m_display->FileDescriptor ()) >::value, "Integral type required");
+    static_assert (std::numeric_limits < gint >::min () >= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::min (), "Integer range exceeded");
+    static_assert (std::numeric_limits < gint >::max () <= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::max (), "Integer range exceeded");
 
     static gint _fd = m_display->FileDescriptor ();
 
@@ -232,9 +232,9 @@ bool Display::vSyncCallback () {
         }
      }
 
-    static_assert (std::is_integral < decltype (_flags) >::value);
-    static_assert (std::numeric_limits < decltype (_flags) >::min () >= std::numeric_limits < uint32_t >::min ());
-    static_assert (std::numeric_limits < decltype (_flags) >::max () <= std::numeric_limits < uint32_t >::max ());
+    static_assert (std::is_integral < decltype (_flags) >::value, "Integral type required");
+    static_assert (std::numeric_limits < decltype (_flags) >::min () >= std::numeric_limits < uint32_t >::min (), "Integer range exceeded");
+    static_assert (std::numeric_limits < decltype (_flags) >::max () <= std::numeric_limits < uint32_t >::max (), "Integer range exceeded");
 
     // If the loop 'runs' too fast check the implementation of Process
     // You may want to add a delay based on the underlying platform just there
