@@ -13,7 +13,7 @@ public:
     ~KeyMapper() = default;
 
 public:
-    static uint32_t KeyCodeToWpeKey(uint16_t code)
+    static uint32_t KeyCodeToWpeKey(uint16_t code, uint16_t modifier)
     {
         uint32_t keyCode = 0;
         switch (code) {
@@ -65,141 +65,150 @@ public:
             keyCode = WPE_KEY_Escape;
             break;
         case KEY_A:
-            keyCode = WPE_KEY_a;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_A : WPE_KEY_a;
             break;
         case KEY_B:
-            keyCode = WPE_KEY_b;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_B : WPE_KEY_b;
             break;
         case KEY_C:
-            keyCode = WPE_KEY_c;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_C : WPE_KEY_c;
             break;
         case KEY_D:
-            keyCode = WPE_KEY_d;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_D : WPE_KEY_d;
             break;
         case KEY_E:
-            keyCode = WPE_KEY_e;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_E : WPE_KEY_e;
             break;
         case KEY_F:
-            keyCode = WPE_KEY_f;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_F : WPE_KEY_f;
             break;
         case KEY_G:
-            keyCode = WPE_KEY_g;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_G : WPE_KEY_g;
             break;
         case KEY_H:
-            keyCode = WPE_KEY_h;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_H : WPE_KEY_h;
             break;
         case KEY_I:
-            keyCode = WPE_KEY_i;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_I : WPE_KEY_i;
             break;
         case KEY_J:
-            keyCode = WPE_KEY_j;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_J : WPE_KEY_j;
             break;
         case KEY_K:
-            keyCode = WPE_KEY_k;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_K : WPE_KEY_k;
             break;
         case KEY_L:
-            keyCode = WPE_KEY_l;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_L : WPE_KEY_l;
             break;
         case KEY_M:
-            keyCode = WPE_KEY_m;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_M : WPE_KEY_m;
             break;
         case KEY_N:
-            keyCode = WPE_KEY_n;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_N : WPE_KEY_n;
             break;
         case KEY_O:
-            keyCode = WPE_KEY_o;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_O : WPE_KEY_o;
             break;
         case KEY_P:
-            keyCode = WPE_KEY_p;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_P : WPE_KEY_p;
             break;
         case KEY_Q:
-            keyCode = WPE_KEY_q;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_Q : WPE_KEY_q;
             break;
         case KEY_R:
-            keyCode = WPE_KEY_r;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_R : WPE_KEY_r;
             break;
         case KEY_S:
-            keyCode = WPE_KEY_s;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_S : WPE_KEY_s;
             break;
         case KEY_T:
-            keyCode = WPE_KEY_t;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_T : WPE_KEY_t;
             break;
         case KEY_U:
-            keyCode = WPE_KEY_u;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_U : WPE_KEY_u;
             break;
         case KEY_V:
-            keyCode = WPE_KEY_v;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_V : WPE_KEY_v;
             break;
         case KEY_W:
-            keyCode = WPE_KEY_w;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_W : WPE_KEY_w;
             break;
         case KEY_X:
-            keyCode = WPE_KEY_x;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_X : WPE_KEY_x;
             break;
         case KEY_Y:
-            keyCode = WPE_KEY_y;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_Y : WPE_KEY_y;
             break;
         case KEY_Z:
-            keyCode = WPE_KEY_z;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_Z : WPE_KEY_z;
             break;
 
         case KEY_0:
-            keyCode = WPE_KEY_0;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_parenright : WPE_KEY_0;
             break;
         case KEY_1:
-            keyCode = WPE_KEY_1;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_exclam : WPE_KEY_1;
             break;
         case KEY_2:
-            keyCode = WPE_KEY_2;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_at : WPE_KEY_2;
             break;
         case KEY_3:
-            keyCode = WPE_KEY_3;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_numbersign : WPE_KEY_3;
             break;
         case KEY_4:
-            keyCode = WPE_KEY_4;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_dollar : WPE_KEY_4;
             break;
         case KEY_5:
-            keyCode = WPE_KEY_5;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_percent : WPE_KEY_5;
             break;
         case KEY_6:
-            keyCode = WPE_KEY_6;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_asciicircum : WPE_KEY_6;
             break;
         case KEY_7:
-            keyCode = WPE_KEY_7;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_ampersand : WPE_KEY_7;
             break;
         case KEY_8:
-            keyCode = WPE_KEY_8;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_asterisk : WPE_KEY_8;
             break;
         case KEY_9:
-            keyCode = WPE_KEY_9;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_parenleft : WPE_KEY_9;
             break;
 
         case KEY_MINUS:
-            keyCode = WPE_KEY_minus;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_underscore : WPE_KEY_minus;
             break;
         case KEY_EQUAL:
-            keyCode = WPE_KEY_equal;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_plus : WPE_KEY_equal;
             break;
         case KEY_SEMICOLON:
-            keyCode = WPE_KEY_semicolon;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_colon : WPE_KEY_semicolon;
             break;
         case KEY_APOSTROPHE:
-            keyCode = WPE_KEY_apostrophe;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_quotedbl : WPE_KEY_apostrophe;
             break;
         case KEY_COMMA:
-            keyCode = WPE_KEY_comma;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_less : WPE_KEY_comma;
             break;
         case KEY_DOT:
-            keyCode = WPE_KEY_period;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_greater : WPE_KEY_period;
             break;
         case KEY_SLASH:
-            keyCode = WPE_KEY_slash;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_question : WPE_KEY_slash;
             break;
         case KEY_BACKSLASH:
-            keyCode = WPE_KEY_backslash;
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_bar : WPE_KEY_backslash;
             break;
         case KEY_CAPSLOCK:
             keyCode = WPE_KEY_Caps_Lock;
+            break;
+        case KEY_LEFTBRACE:
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_braceleft : WPE_KEY_bracketleft;
+            break;
+        case KEY_RIGHTBRACE:
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_braceright : WPE_KEY_bracketright;
+            break;
+        case KEY_GRAVE:
+            keyCode = (modifier == wpe_input_keyboard_modifier_shift) ? WPE_KEY_asciitilde : WPE_KEY_grave;
             break;
 
         case KEY_RED:
@@ -239,6 +248,28 @@ public:
             break;
         }
         return keyCode;
+    }
+
+    inline static uint16_t KeyCodeToWpeModifier(uint16_t code)
+    {
+        uint16_t modifier = 0;
+        switch (code) {
+        case KEY_LEFTSHIFT:
+        case KEY_RIGHTSHIFT:
+            modifier = wpe_input_keyboard_modifier_shift;
+            break;
+        case KEY_LEFTALT:
+        case KEY_RIGHTALT:
+            modifier = wpe_input_keyboard_modifier_alt;
+            break;
+        case KEY_LEFTCTRL:
+        case KEY_RIGHTCTRL:
+            modifier = wpe_input_keyboard_modifier_control;
+            break;
+        default:
+            break;
+        }
+        return modifier;
     }
 };    
 }

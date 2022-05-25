@@ -67,7 +67,7 @@ void KeyboardHandler::RepeatDelayTimeout() {
 void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
 
     // Send the event, it is complete..
-    _callback->Key(action == IKeyboard::pressed, WPE::KeyMapper::KeyCodeToWpeKey(key), key, _modifiers, time);
+    _callback->Key(action == IKeyboard::pressed, WPE::KeyMapper::KeyCodeToWpeKey(key, _modifiers), key, _modifiers, time);
 }
 
 /* virtual */ void KeyboardHandler::Direct(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action)
@@ -196,6 +196,7 @@ Display::Display(IPC::Client& ipc, const std::string& name)
     , m_touchpanel(this)
     , m_backend(nullptr)
     , m_display(Compositor::IDisplay::Instance(name))
+    , _modifiers(0)
 {
 }
 
@@ -249,8 +250,17 @@ Display::~Display()
 
 /* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
     uint32_t actual_key = keycode + 8;
-    uint32_t modifiers = 0;
-    struct wpe_input_keyboard_event event{ TimeNow(), WPE::KeyMapper::KeyCodeToWpeKey(keycode), actual_key, !!actions, modifiers };
+    uint32_t sendCode = ~0;
+
+    if (WPE::KeyMapper::KeyCodeToWpeModifier(keycode)) {
+        if (actions == Compositor::IDisplay::IKeyboard::state::released) {
+            _modifiers &= ~WPE::KeyMapper::KeyCodeToWpeModifier(keycode);
+        } else {
+            _modifiers |= WPE::KeyMapper::KeyCodeToWpeModifier(keycode);
+        }
+    }
+    sendCode = WPE::KeyMapper::KeyCodeToWpeKey(keycode, _modifiers);
+    struct wpe_input_keyboard_event event{ TimeNow(), sendCode, actual_key, !!actions, _modifiers };
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
     std::memcpy(message.messageData, &event, sizeof(event));
