@@ -185,11 +185,53 @@ gboolean vsyncCallback (gpointer data) {
     return TRUE;
 }
 
+ class EventSource {
+ public:
+     static GSourceFuncs sourceFuncs;
+
+     GSource source;
+     GPollFD pfd;
+     Compositor::IDisplay* display;
+     signed int result;
+ };
+
+ GSourceFuncs EventSource::sourceFuncs = {
+     // prepare
+     [](GSource* base, gint* timeout) -> gboolean {
+         *timeout = -1;
+         return FALSE;
+     },
+     // check
+     [](GSource* base) -> gboolean {
+         EventSource& source(*(reinterpret_cast<EventSource*>(base)));
+
+         source.result = source.display->Process(source.pfd.revents & G_IO_IN);
+
+         return (source.result >= 0 ? TRUE : FALSE);
+     },
+     // dispatch
+     [](GSource* base, GSourceFunc, gpointer) -> gboolean {
+         EventSource& source(*(reinterpret_cast<EventSource*>(base)));
+
+         if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
+             fprintf(stderr, "Compositor::Display: error in compositor dispatch\n");
+             return G_SOURCE_REMOVE;
+         }
+
+         source.pfd.revents = 0;
+         return G_SOURCE_CONTINUE;
+     },
+     nullptr, // finalize
+     nullptr, // closure_callback
+     nullptr, // closure_marshall
+ };
+
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
 // -----------------------------------------------------------------------------------------
 Display::Display(IPC::Client& ipc, const std::string& name)
     : m_ipc(ipc)
+    , m_eventSource(g_source_new(&EventSource::sourceFuncs, sizeof(EventSource)))
     , m_keyboard(this)
     , m_wheel(this)
     , m_pointer(this)
@@ -197,6 +239,21 @@ Display::Display(IPC::Client& ipc, const std::string& name)
     , m_backend(nullptr)
     , m_display(Compositor::IDisplay::Instance(name))
 {
+    int descriptor = m_display->FileDescriptor();
+    EventSource* source(reinterpret_cast<EventSource*>(m_eventSource));
+
+    if (descriptor != -1) {
+        source->display = m_display;
+        source->pfd.fd = descriptor;
+        source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
+        source->pfd.revents = 0;
+
+        g_source_add_poll(m_eventSource, &source->pfd);
+        g_source_set_name(m_eventSource, "[WPE] Display");
+        g_source_set_priority(m_eventSource, G_PRIORITY_DEFAULT);
+        g_source_set_can_recurse(m_eventSource, TRUE);
+        g_source_attach(m_eventSource, g_main_context_get_thread_default());
+    }
 }
 
 static constexpr gint FD_TIMEOUT () {

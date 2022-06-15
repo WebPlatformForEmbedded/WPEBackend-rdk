@@ -238,6 +238,7 @@ private:
 
 private:
     IPC::Client& m_ipc;
+    GSource* m_eventSource;
     KeyboardHandler m_keyboard;
     WheelHandler m_wheel;
     PointerHandler m_pointer;
