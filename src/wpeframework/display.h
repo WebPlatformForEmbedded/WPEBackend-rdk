@@ -244,6 +244,7 @@ private:
     TouchPanelHandler m_touchpanel;
     struct wpe_view_backend* m_backend;
     Compositor::IDisplay* m_display;
+    uint32_t _modifiers;
 };
 
 } // namespace WPEFramework
