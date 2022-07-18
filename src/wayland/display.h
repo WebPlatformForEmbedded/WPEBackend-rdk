@@ -130,7 +130,7 @@ public:
             uint32_t eventSource;
         } repeatData { 0, 0, 0, 0 };
 
-        uint32_t serial;
+        uint32_t serial = 0;
     };
 
     void registerInputClient(struct wl_surface*, struct wpe_view_backend*);
