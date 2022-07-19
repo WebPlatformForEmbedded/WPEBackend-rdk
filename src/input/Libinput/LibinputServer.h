@@ -70,7 +70,7 @@ private:
     // Input::KeyboardEventRepeating::Client
     void dispatchKeyboardEvent(uint32_t eventTime, uint32_t eventKey) override;
 
-    Client* m_client;
+    Client* m_client = nullptr;
     std::unique_ptr<Input::KeyboardEventRepeating> m_keyboardEventRepeating;
 
     bool m_handlePointerEvents { false };
@@ -78,7 +78,7 @@ private:
     std::pair<uint32_t, uint32_t> m_pointerBounds;
 
     bool m_handleTouchEvents { false };
-    std::array<struct wpe_input_touch_event_raw, 10> m_touchEvents;
+    std::array<struct wpe_input_touch_event_raw, 10> m_touchEvents{};
 
 #ifdef KEY_INPUT_HANDLING_VIRTUAL
 public:
@@ -91,7 +91,7 @@ private:
     void handleTouchEvent(struct libinput_event *event, enum wpe_input_touch_event_type type);
 
     struct udev* m_udev;
-    struct libinput* m_libinput;
+    struct libinput* m_libinput = nullptr;
 
     class EventSource {
     public:
