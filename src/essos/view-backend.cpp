@@ -55,18 +55,14 @@ struct ViewBackend : public IPC::Host::Handler
 ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     : backend(backend)
 {
-    const char* targetDisplay = getenv("WAYLAND_DISPLAY");
-    if (!targetDisplay)
+    const char* identifier = getenv("CLIENT_IDENTIFIER");
+    if (identifier)
     {
-        const char* identifier = getenv("CLIENT_IDENTIFIER");
-        if (identifier)
+        const char* tmp = strchr(identifier, ',');
+        if (tmp)
         {
-            const char* tmp = strchr(identifier, ',');
-            if (tmp)
-            {
-                targetDisplay = tmp + 1;
-                setenv("WAYLAND_DISPLAY", targetDisplay, 1);
-            }
+            const char* targetDisplay = tmp + 1;
+            setenv("WAYLAND_DISPLAY", targetDisplay, 1);
         }
     }
     ipcHost.initialize(*this);
