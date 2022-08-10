@@ -141,6 +141,7 @@ ViewBackend::~ViewBackend()
     ipcHost.deinitialize();
 
     WPE::LibinputServer::singleton().setClient(nullptr);
+    WPE::LibinputServer::singleton().Close();
 
     if (updateSource)
         g_source_destroy(updateSource);

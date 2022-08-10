@@ -196,14 +196,21 @@ LibinputServer::LibinputServer()
 
 LibinputServer::~LibinputServer()
 {
+    Close();
+}
+
+void LibinputServer::Close()
+{
 #ifdef KEY_INPUT_HANDLING_VIRTUAL
     if (m_virtualinput != nullptr) {
        virtualinput_close(m_virtualinput);
+       m_virtualinput = nullptr;
     }
 #else
     libinput_unref(m_libinput);
     if (m_udev) {
         udev_unref(m_udev);
+        m_udev = nullptr;
     }
 #endif
 }

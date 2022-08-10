@@ -61,6 +61,7 @@ public:
     void setHandleTouchEvents(bool handle);
     void setPointerBounds(uint32_t, uint32_t);
     void handleKeyboardEvent(struct wpe_input_keyboard_event*);
+    void Close();
 private:
     LibinputServer();
     ~LibinputServer();
