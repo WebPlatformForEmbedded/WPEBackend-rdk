@@ -603,6 +603,12 @@ void EGLTarget::onTerminated()
 {
     WARN_LOG("Terminated. Essos ctx = %p", essosCtx);
     stop();
+
+    g_timeout_add_seconds(1, [](gpointer) 
+        WARN_LOG("Exit");
+       _exit(1);
+       return G_SOURCE_REMOVE;
+       }, nullptr);
 }
 
 EGLNativeWindowType EGLTarget::getNativeWindow() const
