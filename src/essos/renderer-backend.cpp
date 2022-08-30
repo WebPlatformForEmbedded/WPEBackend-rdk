@@ -310,6 +310,10 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
         error = true;
     }
     else {
+        // Output geometry might have changed in EssContextStart, refresh target size.
+        if ( !EssContextGetUseDirect(essosCtx) )
+            EssContextGetDisplaySize(essosCtx, &targetWidth, &targetHeight );
+
         // Request page resize if needed
         if ( pageWidth != targetWidth && pageHeight != targetHeight )
             onDisplaySize(targetWidth, targetHeight);
