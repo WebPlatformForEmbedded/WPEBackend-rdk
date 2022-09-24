@@ -39,6 +39,7 @@ endif()
 
 if(PC_WPE_FOUND)
     set(WPE_VERSION ${PC_WPE_VERSION} CACHE INTERNAL "")
+    set(WPE_CFLAGS ${PC_WPE_CFLAGS_OTHER})
 
     find_path(WPE_INCLUDE_DIRS
         NAMES wpe/wpe.h
@@ -49,20 +50,27 @@ if(PC_WPE_FOUND)
         NAMES ${PC_WPE_LIBRARIES}
         HINTS ${PC_WPE_LIBDIR} ${PC_WPE_LIBRARY_DIRS}
     )
-
 else()
     message(FATAL_ERROR "libwpe not found!")
 endif()
 
+# Version 1.12.0 is the last release where XKB support was always present
+if (WPE_VERSION VERSION_LESS_EQUAL 1.12.0)
+    list(APPEND WPE_CFLAGS -DWPE_ENABLE_XKB=1)
+endif ()
+
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(WPE REQUIRED_VARS WPE_INCLUDE_DIRS WPE_LIBRARIES)
+find_package_handle_standard_args(WPE
+    FOUND_VAR WPE_FOUND
+    REQUIRED_VARS WPE_LIBRARIES WPE_INCLUDE_DIRS
+    VERSION_VAR WPE_VERSION
+)
 mark_as_advanced(WPE_INCLUDE_DIRS WPE_LIBRARIES)
 
-if(WPE_FOUND AND NOT TARGET WPE::WPE)
-    add_library(WPE::WPE SHARED IMPORTED)
+if(WPE_LIBRARIES AND NOT TARGET WPE::WPE)
+    add_library(WPE::WPE UNKNOWN IMPORTED GLOBAL)
     set_target_properties(WPE::WPE PROPERTIES
-            IMPORTED_LOCATION "${WPE_LIBRARY}"
-            INTERFACE_LINK_LIBRARIES "${WPE_LIBRARIES}"
+            IMPORTED_LOCATION "${WPE_LIBRARIES}"
             INTERFACE_COMPILE_OPTIONS "${WPE_CFLAGS}"
             INTERFACE_INCLUDE_DIRECTORIES "${WPE_INCLUDE_DIRS}"
     )
