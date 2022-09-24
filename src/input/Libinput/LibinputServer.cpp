@@ -28,6 +28,7 @@
 #include "LibinputServer.h"
 
 #include "KeyboardEventRepeating.h"
+#include <xkbcommon/xkbcommon.h>
 #include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
