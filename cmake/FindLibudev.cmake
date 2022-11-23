@@ -35,11 +35,26 @@ elseif(Libudev_FIND_REQUIRED)
 endif()
 
 find_package(PkgConfig)
-pkg_check_modules(LIBUDEV ${_LIBUDEV_MODE} libudev)
+pkg_check_modules(PC_LIBUDEV ${_LIBUDEV_MODE} libudev)
+
+find_path(LIBUDEV_INCLUDE_DIRS
+    NAMES libudev.h
+    HINTS ${PC_LIBUDEV_INCLUDEDIR} ${PC_LIBUDEV_INCLUDE_DIRS}
+)
+
+find_library(LIBUDEV_LIBRARIES
+    NAMES udev
+    HINTS ${PC_LIBUDEV_LIBDIR} ${PC_LIBUDEV_LIBRARY_DIRS}
+)
+
+mark_as_advanced(LIBUDEV_INCLUDE_DIRS LIBUDEV_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Libudev DEFAULT_MSG LIBUDEV_FOUND LIBUDEV_INCLUDE_DIRS LIBUDEV_LIBRARIES)
-mark_as_advanced(LIBUDEV_INCLUDE_DIRS LIBUDEV_LIBRARIES)
+
+find_package_handle_standard_args(Libudev
+    REQUIRED_VARS LIBUDEV_INCLUDE_DIRS LIBUDEV_LIBRARIES
+    FOUND_VAR LIBUDEV_FOUND
+    VERSION_VAR PC_LIBUDEV_VERSION)
 
 if(Libudev_FOUND AND NOT TARGET Libudev::Libudev)
     add_library(Libudev::Libudev UNKNOWN IMPORTED)
