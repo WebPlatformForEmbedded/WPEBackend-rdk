@@ -25,6 +25,8 @@
 #include <linux/input.h>
 #include <essos-app.h>
 #include <essos-system.h>
+#include <xkbcommon/xkbcommon.h>
+#include <xkbcommon/xkbcommon-compose.h>
 
 #include "ipc.h"
 #include "ipc-essos.h"
