@@ -19,6 +19,7 @@ option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL 
 option(USE_BACKEND_VIV_IMX6_EGL "Whether to enable support for NXP's IMX6 EGL WPE backend" OFF)
 option(USE_BACKEND_WPEFRAMEWORK "WPEFramework abstraction layer is used as WPE backend" OFF)
 option(USE_BACKEND_ESSOS "Whether to enable support for the Essos WPE backend" OFF)
+option(USE_BACKEND_HEADLESS "Whether to enable support for the Headless WPE backend" OFF)
 
 option(USE_PLATFORM_BROADCOM "Whether the playback is based on Broadcom plugins" OFF)
 option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based offscreen target for westeros Mesa only" OFF)
@@ -140,6 +141,10 @@ if (USE_BACKEND_ESSOS)
     include(src/essos/CMakeLists.txt)
 endif ()
 
+if (USE_BACKEND_HEADLESS)
+    include(src/headless/CMakeLists.txt)
+endif ()
+
 add_library(WPEBackend-rdk SHARED ${WPE_PLATFORM_SOURCES})
 target_include_directories(WPEBackend-rdk PRIVATE ${WPE_PLATFORM_INCLUDE_DIRECTORIES})
 target_link_libraries(WPEBackend-rdk ${WPE_PLATFORM_LIBRARIES})
@@ -152,6 +157,15 @@ add_custom_command(TARGET WPEBackend-rdk
         COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so ${CMAKE_BINARY_DIR}/libWPEBackend-default.so
         )
 install(FILES ${CMAKE_BINARY_DIR}/libWPEBackend-default.so DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+
+if (USE_BACKEND_HEADLESS)
+    # Create a libWPEBackend-headless.so symlink to libWPEBackend-rdk.so and install it.
+    add_custom_command(TARGET WPEBackend-rdk
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink libWPEBackend-rdk.so ${CMAKE_BINARY_DIR}/libWPEBackend-headless.so
+        )
+    install(FILES ${CMAKE_BINARY_DIR}/libWPEBackend-headless.so DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
+endif ()
 
 configure_file(wpebackend-rdk.pc.in wpebackend-rdk-${WPEBACKEND_RDK_API_VERSION}.pc @ONLY)
 install(
