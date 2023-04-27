@@ -610,8 +610,13 @@ void EGLTarget::onTerminated()
     WARN_LOG("Terminated. Essos ctx = %p", essosCtx);
     stop();
 
+    if(getenv("CLIENT_IDENTIFIER") != nullptr) {
+        kill(getppid(), SIGHUP);
+        WARN_LOG("Sent SIGHUP to parent [%d]", getppid());
+    }
+
     g_timeout_add_seconds(1, [](gpointer) {
-        WARN_LOG("Exit");
+        WARN_LOG("Exit [%d]", getpid());
        _exit(1);
        return G_SOURCE_REMOVE;
        }, nullptr);
