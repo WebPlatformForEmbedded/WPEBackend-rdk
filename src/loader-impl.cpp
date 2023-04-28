@@ -66,6 +66,10 @@
 #include "essos/interfaces.h"
 #endif
 
+#ifdef BACKEND_HEADLESS
+#include "headless/interfaces.h"
+#endif
+
 extern "C" {
 
 struct wpe_renderer_host_interface noop_renderer_host_interface = {
@@ -91,6 +95,16 @@ struct wpe_loader_interface _wpe_loader_interface = {
 
         if (!std::strcmp(object_name, "_wpe_renderer_host_interface"))
             return &noop_renderer_host_interface;
+
+#ifdef BACKEND_HEADLESS
+        static bool is_headless = std::strstr(wpe_loader_get_loaded_implementation_library_name(), "headless") != nullptr;
+        if (is_headless && !std::strcmp(object_name, "_wpe_view_backend_interface"))
+            return &headless_view_backend_interface;
+        if (is_headless && (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface")
+                            || !std::strcmp(object_name, "_wpe_renderer_backend_egl_target_interface")
+                            || !std::strcmp(object_name, "_wpe_renderer_backend_egl_offscreen_target_interface")))
+            return nullptr;
+#endif
 
 #ifdef BACKEND_BCM_NEXUS
         if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface"))
