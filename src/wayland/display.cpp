@@ -33,6 +33,7 @@
 #include "wayland-client-protocol.h"
 #include <cassert>
 #include <cstring>
+#include <cstdio>
 #include <glib.h>
 #include <linux/input.h>
 #include <locale.h>
@@ -40,6 +41,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <xkbcommon/xkbcommon.h>
 #include <wayland-client.h>
 
 namespace Wayland {

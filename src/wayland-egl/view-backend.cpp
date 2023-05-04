@@ -30,6 +30,7 @@
 #include "display.h"
 #include "ipc.h"
 #include "ipc-waylandegl.h"
+#include <cstdio>
 
 #define WIDTH 1280
 #define HEIGHT 720

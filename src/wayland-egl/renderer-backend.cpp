@@ -33,6 +33,7 @@
 #include "display.h"
 #include "ipc.h"
 #include "ipc-waylandegl.h"
+#include <cstdio>
 #include <wayland-client-protocol.h>
 
 namespace WaylandEGL {
