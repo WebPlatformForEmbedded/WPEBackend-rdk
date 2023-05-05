@@ -132,22 +132,14 @@ const struct wl_registry_listener g_registryListener = {
         if (!std::strcmp(interface, "wl_seat"))
             interfaces.seat = static_cast<struct wl_seat*>(wl_registry_bind(registry, name, &wl_seat_interface, 4));
 
-        if (!std::strcmp(interface, "xdg_shell"))
-            interfaces.xdg = static_cast<struct xdg_shell*>(wl_registry_bind(registry, name, &xdg_shell_interface, 1)); 
+        if (!std::strcmp(interface, xdg_wm_base_interface.name))
+            interfaces.xdg = static_cast<struct xdg_wm_base*>(wl_registry_bind(registry, name, &xdg_wm_base_interface, 1));
 
         if (!std::strcmp(interface, "wl_shell"))
             interfaces.shell = static_cast<struct wl_shell*>(wl_registry_bind(registry, name, &wl_shell_interface, 1));
     },
     // global_remove
     [](void*, struct wl_registry*, uint32_t) { },
-};
-
-static const struct xdg_shell_listener g_xdgShellListener = {
-    // ping
-    [](void*, struct xdg_shell* shell, uint32_t serial)
-    {
-        xdg_shell_pong(shell, serial);
-    },
 };
 
 static uint32_t
@@ -563,8 +555,14 @@ Display::Display()
     g_source_set_can_recurse(m_eventSource, TRUE);
     g_source_attach(m_eventSource, g_main_context_get_thread_default());
     if (m_interfaces.xdg) {
-        xdg_shell_add_listener(m_interfaces.xdg, &g_xdgShellListener, nullptr);
-        xdg_shell_use_unstable_version(m_interfaces.xdg, 5);
+        static const struct xdg_wm_base_listener wmBaseListener = {
+            // ping
+            [](void*, struct xdg_wm_base* shell, uint32_t serial)
+            {
+                xdg_wm_base_pong(shell, serial);
+            },
+        };
+        xdg_wm_base_add_listener(m_interfaces.xdg, &wmBaseListener, nullptr);
     }
 
     if ( m_interfaces.seat )
@@ -586,7 +584,7 @@ Display::~Display()
         wl_nsc_destroy(m_interfaces.nsc);
 #endif
     if (m_interfaces.xdg)
-        xdg_shell_destroy(m_interfaces.xdg);
+        xdg_wm_base_destroy(m_interfaces.xdg);
     if (m_interfaces.shell)
         wl_shell_destroy(m_interfaces.shell);
     m_interfaces = {
