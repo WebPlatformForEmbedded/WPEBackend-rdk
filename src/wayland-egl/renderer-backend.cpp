@@ -33,6 +33,7 @@
 #include "display.h"
 #include "ipc.h"
 #include "ipc-waylandegl.h"
+#include "xdg-shell-client-protocol.h"
 #include <cstdio>
 #include <wayland-client-protocol.h>
 
@@ -68,6 +69,8 @@ struct EGLTarget : public IPC::Client::Handler {
     struct wl_surface* m_surface { nullptr };
     struct wl_shell_surface *m_shellSurface { nullptr };
     struct wl_egl_window* m_window { nullptr };
+    struct xdg_surface *m_xdgSurface { nullptr };
+    struct xdg_toplevel *m_xdgTopLevel { nullptr };
     Backend* m_backend { nullptr };
 };
 
@@ -112,7 +115,29 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
         return;
     }
 
-    if (m_backend->display.interfaces().shell) {
+    if (m_backend->display.interfaces().xdg) {
+        m_xdgSurface = xdg_wm_base_get_xdg_surface(m_backend->display.interfaces().xdg, m_surface);
+        static const struct xdg_surface_listener surfaceListener = {
+            // configure
+            [](void*, struct xdg_surface *xdgSurface, uint32_t serial) {
+                xdg_surface_ack_configure(xdgSurface, serial);
+            },
+        };
+        xdg_surface_add_listener(m_xdgSurface, &surfaceListener, nullptr);
+
+        m_xdgTopLevel = xdg_surface_get_toplevel(m_xdgSurface);
+        static const struct xdg_toplevel_listener topLevelListener = {
+            // configure
+            [](void*, struct xdg_toplevel*, int32_t, int32_t, struct wl_array*) {},
+            // close
+            [](void*, struct xdg_toplevel*) {},
+        };
+        xdg_toplevel_add_listener(m_xdgTopLevel, &topLevelListener, nullptr);
+        xdg_toplevel_set_app_id(m_xdgTopLevel, "com.rdkcentral.WPEBackend");
+        xdg_toplevel_set_title(m_xdgTopLevel, "WPE");
+        xdg_toplevel_set_fullscreen(m_xdgTopLevel, nullptr);
+        wl_surface_commit(m_surface);
+    } else if (m_backend->display.interfaces().shell) {
         m_shellSurface = wl_shell_get_shell_surface(m_backend->display.interfaces().shell, m_surface);
         if (m_shellSurface) {
             wl_shell_surface_add_listener(m_shellSurface,
