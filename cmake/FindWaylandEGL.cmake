@@ -41,6 +41,11 @@ pkg_check_modules(WAYLAND_EGL ${_WAYLAND_EGL_MODE} wayland-egl)
 find_library(WAYLAND_EGL_LIB NAMES wayland-egl
         HINTS ${WAYLAND_EGL_LIBDIR} ${WAYLAND_EGL_LIBRARY_DIRS})
 
+# If Wayland-EGL includes are located in standard path i.e. "/usr/include" get this path manually to make next functions happy
+if(WAYLAND_EGL_INCLUDE_DIRS STREQUAL "")
+    pkg_get_variable(WAYLAND_EGL_INCLUDE_DIRS wayland-egl includedir)
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(WaylandEGL DEFAULT_MSG WAYLAND_EGL_FOUND WAYLAND_EGL_INCLUDE_DIRS WAYLAND_EGL_LIBRARIES WAYLAND_EGL_LIB)
 set(WAYLAND_EGL_LIBRARIES ${WAYLAND_EGL_LIBRARIES} ${WAYLAND_EGL_LIB})
