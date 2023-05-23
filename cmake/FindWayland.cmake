@@ -41,6 +41,11 @@ pkg_check_modules(WAYLAND ${_WAYLAND_SERVER_MODE} wayland-client>=1.2 wayland-se
 find_library(WAYLAND_LIB NAMES wayland-client
         HINTS ${WAYLAND_LIBDIR} ${WAYLAND_LIBRARY_DIRS})
 
+# If Wayland includes are located in standard path i.e. "/usr/include" get this path manually to make next functions happy
+if(WAYLAND_INCLUDE_DIRS STREQUAL "")
+    pkg_get_variable(WAYLAND_INCLUDE_DIRS wayland-client includedir)
+endif()
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Wayland DEFAULT_MSG WAYLAND_FOUND WAYLAND_INCLUDE_DIRS WAYLAND_LIBRARIES WAYLAND_LIB)
 mark_as_advanced(WAYLAND_INCLUDE_DIRS WAYLAND_LIBRARIES)
