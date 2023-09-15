@@ -164,6 +164,12 @@ EGLTarget::~EGLTarget()
     if (m_window)
         wl_egl_window_destroy(m_window);
     m_window = nullptr;
+    if (m_xdgTopLevel)
+        xdg_toplevel_destroy(m_xdgTopLevel);
+    m_xdgTopLevel = nullptr;
+    if (m_xdgSurface)
+        xdg_surface_destroy(m_xdgSurface);
+    m_xdgSurface = nullptr;
     if (m_shellSurface)
         wl_shell_surface_destroy(m_shellSurface);
     m_shellSurface = nullptr;
