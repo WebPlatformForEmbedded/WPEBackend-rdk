@@ -33,6 +33,7 @@
 
 #ifdef KEY_INPUT_HANDLING_WAYLAND
 #include "display.h"
+#include "xdg-shell-client-protocol.h"
 #include <wayland-client.h>
 #endif
 
@@ -118,6 +119,8 @@ struct ViewBackend : public IPC::Host::Handler
     Wayland::Display& m_display;
     struct wl_surface* m_surface { nullptr };
     struct wl_shell_surface *m_shellSurface { nullptr };
+    struct xdg_surface *m_xdgSurface { nullptr };
+    struct xdg_toplevel *m_xdgTopLevel { nullptr };
 #endif
 
     uint32_t width { 0 };
@@ -143,6 +146,12 @@ ViewBackend::~ViewBackend()
 
 #ifdef KEY_INPUT_HANDLING_WAYLAND
     m_display.unregisterInputClient(m_surface);
+    if (m_xdgTopLevel)
+        xdg_toplevel_destroy(m_xdgTopLevel);
+    m_xdgTopLevel = nullptr;
+    if (m_xdgSurface)
+        xdg_surface_destroy(m_xdgSurface);
+    m_xdgSurface = nullptr;
     if (m_shellSurface)
         wl_shell_surface_destroy(m_shellSurface);
     m_shellSurface = nullptr;
@@ -175,7 +184,29 @@ void ViewBackend::initialize()
 
 #ifdef KEY_INPUT_HANDLING_WAYLAND
     m_surface = wl_compositor_create_surface(m_display.interfaces().compositor);
-    if (m_display.interfaces().shell) {
+    if (m_display.interfaces().xdg) {
+        m_xdgSurface = xdg_wm_base_get_xdg_surface(m_display.interfaces().xdg, m_surface);
+        static const struct xdg_surface_listener surfaceListener = {
+            // configure
+            [](void*, struct xdg_surface *xdgSurface, uint32_t serial) {
+                xdg_surface_ack_configure(xdgSurface, serial);
+            },
+        };
+        xdg_surface_add_listener(m_xdgSurface, &surfaceListener, nullptr);
+
+        m_xdgTopLevel = xdg_surface_get_toplevel(m_xdgSurface);
+        static const struct xdg_toplevel_listener topLevelListener = {
+            // configure
+            [](void*, struct xdg_toplevel*, int32_t, int32_t, struct wl_array*) {},
+            // close
+            [](void*, struct xdg_toplevel*) {},
+        };
+        xdg_toplevel_add_listener(m_xdgTopLevel, &topLevelListener, nullptr);
+        xdg_toplevel_set_app_id(m_xdgTopLevel, "com.rdkcentral.WPEBackend");
+        xdg_toplevel_set_title(m_xdgTopLevel, "WPE");
+        xdg_toplevel_set_fullscreen(m_xdgTopLevel, nullptr);
+        wl_surface_commit(m_surface);
+    } else if (m_display.interfaces().shell) {
         m_shellSurface = wl_shell_get_shell_surface(m_display.interfaces().shell, m_surface);
         if (m_shellSurface) {
             wl_shell_surface_add_listener(m_shellSurface,
