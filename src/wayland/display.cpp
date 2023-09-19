@@ -571,8 +571,10 @@ Display::Display()
 
 Display::~Display()
 {
-    if (m_eventSource)
+    if (m_eventSource) {
+        g_source_destroy(m_eventSource);
         g_source_unref(m_eventSource);
+    }
     m_eventSource = nullptr;
 
     if (m_interfaces.compositor)
