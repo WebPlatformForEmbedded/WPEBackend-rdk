@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <cstdio>
 
 #include "ipc.h"
 #include "ipc-essos.h"
