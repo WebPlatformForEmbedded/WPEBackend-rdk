@@ -21,6 +21,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <cstdio>
+#include <clocale>
 
 #include <linux/input.h>
 #include <essos-app.h>
