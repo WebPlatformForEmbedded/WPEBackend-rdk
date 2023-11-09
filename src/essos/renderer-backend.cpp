@@ -107,12 +107,14 @@ struct EGLTarget : public IPC::Client::Handler
     virtual ~EGLTarget();
 
     void initialize(Backend& backend, uint32_t width, uint32_t height);
-    EGLNativeWindowType getNativeWindow() const;
-    void resize(uint32_t width, uint32_t height);
-    void frameRendered();
+    void deinitialize();
 
     gboolean runEventLoopOnce();
     void stop();
+
+    EGLNativeWindowType getNativeWindow() const;
+    void resize(uint32_t width, uint32_t height);
+    void frameRendered();
 
     // IPC::Client::Handler
     void handleMessage(char* data, size_t size) override;
@@ -206,11 +208,24 @@ EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
 
 EGLTarget::~EGLTarget()
 {
-    stop();
+    deinitialize();
 }
 
 void EGLTarget::stop()
 {
+    if (essosCtx)
+        EssContextStop(essosCtx);
+
+    if (eventSource) {
+        auto *tmp = std::exchange(eventSource, nullptr);
+        g_source_destroy(tmp);
+        g_source_unref(tmp);
+    }
+}
+
+void EGLTarget::deinitialize()
+{
+    stop();
     ipcClient.deinitialize();
 
     if (essosCtx) {
@@ -226,17 +241,8 @@ void EGLTarget::stop()
                 ERROR_LOG("Essos error: '%s'", detail);
             }
         }
-
-        EssContextStop(essosCtx);
         essosCtx = nullptr;
     }
-
-    if (eventSource) {
-        auto *tmp = std::exchange(eventSource, nullptr);
-        g_source_destroy(tmp);
-        g_source_unref(tmp);
-    }
-
     backend = nullptr;
 }
 
@@ -274,7 +280,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
         [](gpointer data) {
             EGLTarget& self = *reinterpret_cast<EGLTarget*>(data);
             if (self.eventSource)
-                self.stop();
+                self.deinitialize();
         });
     g_source_set_priority(eventSource, G_PRIORITY_HIGH + 30);
     g_source_set_can_recurse(eventSource, TRUE);
@@ -326,7 +332,7 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     if ( error ) {
         const char *detail = EssContextGetLastErrorDetail(essosCtx);
         ERROR_LOG("Essos error: '%s'", detail);
-        stop();
+        deinitialize();
         abort();
         return;
     }
