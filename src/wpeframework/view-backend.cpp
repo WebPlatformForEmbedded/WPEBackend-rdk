@@ -132,6 +132,7 @@ void ViewBackend::handleMessage(char* data, size_t size)
     	IPC::FrameComplete::construct(message);
     	ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
+	wpe_view_backend_dispatch_frame_displayed(backend);
         break;
     }
     case IPC::AdjustedDimensions::code:
