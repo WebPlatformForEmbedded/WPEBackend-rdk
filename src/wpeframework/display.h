@@ -111,7 +111,7 @@ public:
     WheelHandler (IWheelMotionHandler* callback) : _callback(callback) { }
     ~WheelHandler() { }
 
-    uint32_t AddRef() const override { }
+    uint32_t AddRef() const override { return (0); }
     uint32_t Release() const override { return (0); }
 
     void Direct(const int16_t horizontal, const int16_t vertical) override;
@@ -141,7 +141,7 @@ public:
     { }
     ~PointerHandler() { }
 
-    uint32_t AddRef() const override { }
+    uint32_t AddRef() const override { return (0); }
     uint32_t Release() const override { return (0); }
 
     void Direct(const uint8_t button, const IPointer::state state) override;
@@ -172,7 +172,7 @@ public:
     { }
     ~TouchPanelHandler() { }
 
-    uint32_t AddRef() const override { }
+    uint32_t AddRef() const override { return (0); }
     uint32_t Release() const override { return (0); }
 
     void Direct(const uint8_t index, const ITouchPanel::state state, const uint16_t x, const uint16_t y) override;
