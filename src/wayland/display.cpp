@@ -53,64 +53,76 @@ public:
     GSource source;
     GPollFD pfd;
     struct wl_display* display;
+    bool isReading;
 };
 
 GSourceFuncs EventSource::sourceFuncs = {
     // prepare
     [](GSource* base, gint* timeout) -> gboolean
     {
-        auto* source = reinterpret_cast<EventSource*>(base);
-        struct wl_display* display = source->display;
+        auto& source = *reinterpret_cast<EventSource*>(base);
 
         *timeout = -1;
 
-        while (wl_display_prepare_read(display) != 0) {
-            if (wl_display_dispatch_pending(display) < 0) {
-                fprintf(stderr, "Wayland::Display: error in wayland prepare\n");
-                return FALSE;
-            }
-        }
-        wl_display_flush(display);
+        if (source.isReading)
+            return FALSE;
 
+        // If there are pending dispatches we return TRUE to proceed to dispatching ASAP.
+        if (wl_display_prepare_read(source.display) != 0)
+            return TRUE;
+
+        source.isReading = true;
+
+        wl_display_flush(source.display);
         return FALSE;
     },
     // check
     [](GSource* base) -> gboolean
     {
-        auto* source = reinterpret_cast<EventSource*>(base);
-        struct wl_display* display = source->display;
+        auto& source = *reinterpret_cast<EventSource*>(base);
 
-        if (source->pfd.revents & G_IO_IN) {
-            if (wl_display_read_events(display) < 0) {
-                fprintf(stderr, "Wayland::Display: error in wayland read\n");
-                return FALSE;
-            }
-            return TRUE;
-        } else {
-            wl_display_cancel_read(display);
-            return FALSE;
+        // Only perform the read if input was made available during polling.
+        // Error during read is noted and will be handled in the following
+        // dispatch callback. If no input is available, the read is canceled.
+        if (source.isReading) {
+            source.isReading = false;
+
+            if (source.pfd.revents & G_IO_IN) {
+                if (wl_display_read_events(source.display) == 0)
+                    return TRUE;
+            } else
+                wl_display_cancel_read(source.display);
         }
+
+        return source.pfd.revents;
     },
     // dispatch
     [](GSource* base, GSourceFunc, gpointer) -> gboolean
     {
-        auto* source = reinterpret_cast<EventSource*>(base);
-        struct wl_display* display = source->display;
+        auto& source = *reinterpret_cast<EventSource*>(base);
 
-        if (source->pfd.revents & G_IO_IN) {
-            if (wl_display_dispatch_pending(display) < 0) {
-                fprintf(stderr, "Wayland::Display: error in wayland dispatch\n");
-                return G_SOURCE_REMOVE;
-            }
-        }
-
-        if (source->pfd.revents & (G_IO_ERR | G_IO_HUP))
+        // Remove the source if any error was registered.
+        if (source.pfd.revents & (G_IO_ERR | G_IO_HUP))
             return G_SOURCE_REMOVE;
 
-        source->pfd.revents = 0;
+        // Dispatch any pending events. The source is removed in case of
+        // an error occurring during this step.
+        if (wl_display_dispatch_pending(source.display) < 0)
+            return G_SOURCE_REMOVE;
+
+        source.pfd.revents = 0;
         return G_SOURCE_CONTINUE;
     },
-    nullptr, // finalize
+    // finalize
+    [](GSource* base)
+    {
+        auto& source = *reinterpret_cast<EventSource*>(base);
+
+        if (source.isReading) {
+            wl_display_cancel_read(source.display);
+            source.isReading = false;
+        }
+    },
     nullptr, // closure_callback
     nullptr, // closure_marshall
 };
@@ -545,6 +557,7 @@ Display::Display()
     m_eventSource = g_source_new(&EventSource::sourceFuncs, sizeof(EventSource));
     auto* source = reinterpret_cast<EventSource*>(m_eventSource);
     source->display = m_display;
+    source->isReading = false;
 
     source->pfd.fd = wl_display_get_fd(m_display);
     source->pfd.events = G_IO_IN | G_IO_ERR | G_IO_HUP;
