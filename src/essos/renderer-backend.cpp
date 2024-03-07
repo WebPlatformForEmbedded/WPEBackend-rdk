@@ -57,6 +57,7 @@ struct Backend
     ~Backend();
 
     NativeDisplayType getDisplay() const;
+    uint32_t getPlatform() const;
 
     EssCtx *essosCtx { nullptr };
 };
@@ -100,6 +101,16 @@ NativeDisplayType Backend::getDisplay() const
 
     DEBUG_LOG("displayType=%x ", displayType);
     return displayType;
+}
+
+uint32_t Backend::getPlatform() const
+{
+#ifdef EGL_PLATFORM_WAYLAND_EXT
+  if (essosCtx && EssContextGetAppPlatformDisplayType(essosCtx) == EssAppPlatformDisplayType_waylandExtension)
+    return EGL_PLATFORM_WAYLAND_EXT;
+#endif
+
+  return 0u;
 }
 
 struct EGLTarget : public IPC::Client::Handler
@@ -653,6 +664,14 @@ struct wpe_renderer_backend_egl_interface essos_renderer_backend_egl_interface =
         auto& backend = *static_cast<Essos::Backend*>(data);
         return backend.getDisplay();
     },
+#if WPE_CHECK_VERSION(1, 1, 0)
+    // get_platform
+    [](void* data) -> uint32_t
+    {
+        auto& backend = *static_cast<Essos::Backend*>(data);
+        return backend.getPlatform();
+    },
+#endif
 };
 
 struct wpe_renderer_backend_egl_target_interface essos_renderer_backend_egl_target_interface = {
