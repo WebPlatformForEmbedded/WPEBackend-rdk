@@ -51,6 +51,17 @@ static bool enableDebugLogs()
     return enable;
 }
 
+static bool isExtensionSupported(const char* extension_list, const char* extension) {
+  int len = strlen(extension);
+  const char* ptr = extension_list;
+  while ((ptr = strstr(ptr, extension))) {
+    if (ptr[len] == ' ' || ptr[len] == '\0')
+      return true;
+    ptr += len;
+  }
+  return false;
+}
+
 struct Backend
 {
     Backend();
@@ -106,8 +117,13 @@ NativeDisplayType Backend::getDisplay() const
 uint32_t Backend::getPlatform() const
 {
 #ifdef EGL_PLATFORM_WAYLAND_EXT
-  if (essosCtx && EssContextGetAppPlatformDisplayType(essosCtx) == EssAppPlatformDisplayType_waylandExtension)
-    return EGL_PLATFORM_WAYLAND_EXT;
+  if (essosCtx && EssContextGetAppPlatformDisplayType(essosCtx) == EssAppPlatformDisplayType_waylandExtension) {
+    const char* extensions = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+    if (!isExtensionSupported(extensions, "EGL_EXT_platform_wayland"))
+      WARN_LOG("EGL_EXT_platform_wayland is not supported. Supported extensions: '%s'", extensions);
+    else
+      return EGL_PLATFORM_WAYLAND_EXT;
+  }
 #endif
 
   return 0u;
