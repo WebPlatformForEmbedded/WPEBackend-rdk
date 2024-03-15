@@ -51,12 +51,24 @@ static bool enableDebugLogs()
     return enable;
 }
 
+static bool isExtensionSupported(const char* extension_list, const char* extension) {
+  int len = strlen(extension);
+  const char* ptr = extension_list;
+  while ((ptr = strstr(ptr, extension))) {
+    if (ptr[len] == ' ' || ptr[len] == '\0')
+      return true;
+    ptr += len;
+  }
+  return false;
+}
+
 struct Backend
 {
     Backend();
     ~Backend();
 
     NativeDisplayType getDisplay() const;
+    uint32_t getPlatform() const;
 
     EssCtx *essosCtx { nullptr };
 };
@@ -100,6 +112,21 @@ NativeDisplayType Backend::getDisplay() const
 
     DEBUG_LOG("displayType=%x ", displayType);
     return displayType;
+}
+
+uint32_t Backend::getPlatform() const
+{
+#ifdef EGL_PLATFORM_WAYLAND_EXT
+  if (essosCtx && EssContextGetAppPlatformDisplayType(essosCtx) == EssAppPlatformDisplayType_waylandExtension) {
+    const char* extensions = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+    if (!isExtensionSupported(extensions, "EGL_EXT_platform_wayland"))
+      WARN_LOG("EGL_EXT_platform_wayland is not supported. Supported extensions: '%s'", extensions);
+    else
+      return EGL_PLATFORM_WAYLAND_EXT;
+  }
+#endif
+
+  return 0u;
 }
 
 struct EGLTarget : public IPC::Client::Handler
@@ -653,6 +680,14 @@ struct wpe_renderer_backend_egl_interface essos_renderer_backend_egl_interface =
         auto& backend = *static_cast<Essos::Backend*>(data);
         return backend.getDisplay();
     },
+#if WPE_CHECK_VERSION(1, 1, 0)
+    // get_platform
+    [](void* data) -> uint32_t
+    {
+        auto& backend = *static_cast<Essos::Backend*>(data);
+        return backend.getPlatform();
+    },
+#endif
 };
 
 struct wpe_renderer_backend_egl_target_interface essos_renderer_backend_egl_target_interface = {
