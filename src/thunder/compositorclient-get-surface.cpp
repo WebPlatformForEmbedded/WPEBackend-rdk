@@ -31,7 +31,7 @@
 #include <compositor/Client.h>
 #include <cstring>
 
-namespace WPEFramework {
+namespace Thunder {
 
 extern "C" {
 
@@ -46,7 +46,7 @@ void* wpe_compositorclient_get_parent_surface(struct wpe_renderer_backend_egl* b
       return nativesurface;;
 
     auto* base = reinterpret_cast<struct wpe_renderer_backend_egl_base*>(backend);
-    auto* display = reinterpret_cast<WPEFramework::Compositor::IDisplay*>(base->interface_data);
+    auto* display = reinterpret_cast<Thunder::Compositor::IDisplay*>(base->interface_data);
 
     //get the ISurface from the IDisplay
     if (display)

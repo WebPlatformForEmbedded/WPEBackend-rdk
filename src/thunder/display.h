@@ -24,8 +24,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef wpe_view_backend_wpeframework_display_h
-#define wpe_view_backend_wpeframework_display_h
+#ifndef wpe_view_backend_thunder_display_h
+#define wpe_view_backend_thunder_display_h
 
 #include "ipc.h"
 #include <assert.h>
@@ -36,7 +36,7 @@ struct wpe_view_backend;
 
 typedef struct _GSource GSource;
 
-namespace WPEFramework {
+namespace Thunder {
 
 class KeyboardHandler : public Compositor::IDisplay::IKeyboard
 {
@@ -249,6 +249,6 @@ private:
     uint32_t _modifiers;
 };
 
-} // namespace WPEFramework
+} // namespace Thunder
 
-#endif // wpe_view_backend_wpeframework_display_h
+#endif // wpe_view_backend_thunder_display_h

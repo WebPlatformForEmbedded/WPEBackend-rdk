@@ -35,7 +35,7 @@
 #define WIDTH 1280
 #define HEIGHT 720
 
-namespace WPEFramework {
+namespace Thunder {
 
 struct ViewBackend : public IPC::Host::Handler {
     ViewBackend(struct wpe_view_backend*);
@@ -165,32 +165,32 @@ void ViewBackend::initialize()
     wpe_view_backend_dispatch_set_size( backend, width, height);
 }
 
-} // namespace WPEFramework
+} // namespace Thunder
 
 extern "C" {
 
-struct wpe_view_backend_interface wpeframework_view_backend_interface = {
+struct wpe_view_backend_interface thunder_view_backend_interface = {
     // create
     [](void*, struct wpe_view_backend* backend) -> void*
     {
-        return new WPEFramework::ViewBackend(backend);
+        return new Thunder::ViewBackend(backend);
     },
     // destroy
     [](void* data)
     {
-        WPEFramework::ViewBackend* backend = static_cast<WPEFramework::ViewBackend*>(data);
+        Thunder::ViewBackend* backend = static_cast<Thunder::ViewBackend*>(data);
         delete backend;
     },
     // initialize
     [](void* data)
     {
-        WPEFramework::ViewBackend& backend (*static_cast<WPEFramework::ViewBackend*>(data));
+        Thunder::ViewBackend& backend (*static_cast<Thunder::ViewBackend*>(data));
         backend.initialize();
     },
     // get_renderer_host_fd
     [](void* data) -> int
     {
-        WPEFramework::ViewBackend& backend (*static_cast<WPEFramework::ViewBackend*>(data));
+        Thunder::ViewBackend& backend (*static_cast<Thunder::ViewBackend*>(data));
         return backend.ipcHost.releaseClientFD();
     },
 };
