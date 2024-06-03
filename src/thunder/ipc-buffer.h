@@ -26,8 +26,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef wpe_platform_ipc_wpeframework_h
-#define wpe_platform_ipc_wpeframework_h
+#ifndef wpe_platform_ipc_thunder_h
+#define wpe_platform_ipc_thunder_h
 
 #include <memory>
 #include <stdint.h>

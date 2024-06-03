@@ -29,7 +29,7 @@
 #include <chrono>
 #include <KeyMapper/KeyMapperWpe.h>
 
-namespace WPEFramework {
+namespace Thunder {
 
 namespace {
     inline uint32_t TimeNow()
@@ -410,4 +410,4 @@ void Display::SendEvent(wpe_input_touch_event_raw& event)
     m_ipc.sendMessage(IPC::Message::data(message), IPC::Message::size);
 }
 
-} // namespace WPEFramework
+} // namespace Thunder

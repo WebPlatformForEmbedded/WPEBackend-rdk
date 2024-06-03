@@ -25,8 +25,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef wpeframework_interfaces_h
-#define wpeframework_interfaces_h
+#ifndef thunder_interfaces_h
+#define thunder_interfaces_h
 
 #include <wpe/wpe.h>
 #include <wpe/wpe-egl.h>
@@ -35,14 +35,14 @@
 extern "C" {
 #endif
 
-extern struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_interface;
-extern struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_egl_target_interface;
-extern struct wpe_renderer_backend_egl_offscreen_target_interface wpeframework_renderer_backend_egl_offscreen_target_interface;
+extern struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface;
+extern struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_target_interface;
+extern struct wpe_renderer_backend_egl_offscreen_target_interface thunder_renderer_backend_egl_offscreen_target_interface;
 
-extern struct wpe_view_backend_interface wpeframework_view_backend_interface;
+extern struct wpe_view_backend_interface thunder_view_backend_interface;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // wpeframework_interfaces_h
+#endif // thunder_interfaces_h

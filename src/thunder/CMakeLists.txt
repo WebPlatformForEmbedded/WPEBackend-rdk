@@ -24,11 +24,11 @@ if (WAYLAND_FOUND AND WAYLAND_EGL_FOUND AND WPE_VERSION VERSION_GREATER 1.4)
     )
 
     list(APPEND WPE_PLATFORM_SOURCES
-        src/wpeframework/compositorclient-get-surface.cpp
+        src/thunder/compositorclient-get-surface.cpp
     )
 
     set(WPEBACKEND_RDK_PUBLIC_HEADERS
-        src/wpeframework/compositorclient-get-surface.h
+        src/thunder/compositorclient-get-surface.h
     )
 
     install(
@@ -37,11 +37,11 @@ if (WAYLAND_FOUND AND WAYLAND_EGL_FOUND AND WPE_VERSION VERSION_GREATER 1.4)
     )
 endif()
 
-add_definitions(-DBACKEND_WPEFRAMEWORK=1)
+add_definitions(-DBACKEND_THUNDER=1)
 add_definitions(-DEGL_EGLEXT_PROTOTYPES=1)
 
 list(APPEND WPE_PLATFORM_SOURCES
-    src/wpeframework/renderer-backend.cpp
-    src/wpeframework/view-backend.cpp
-    src/wpeframework/display.cpp
+    src/thunder/renderer-backend.cpp
+    src/thunder/view-backend.cpp
+    src/thunder/display.cpp
 )

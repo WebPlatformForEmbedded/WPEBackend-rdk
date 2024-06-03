@@ -17,7 +17,7 @@ option(USE_BACKEND_WAYLAND_EGL "Whether to enable support for the wayland-egl WP
 option(USE_BACKEND_WESTEROS "Whether to enable support for the Westeros WPE backend" OFF)
 option(USE_BACKEND_REALTEK "Whether to enable support for Realtek's Wayland EGL WPE backend" OFF)
 option(USE_BACKEND_VIV_IMX6_EGL "Whether to enable support for NXP's IMX6 EGL WPE backend" OFF)
-option(USE_BACKEND_WPEFRAMEWORK "WPEFramework abstraction layer is used as WPE backend" OFF)
+option(USE_BACKEND_THUNDER "Thunder abstraction layer is used as WPE backend" OFF)
 option(USE_BACKEND_ESSOS "Whether to enable support for the Essos WPE backend" OFF)
 option(USE_BACKEND_HEADLESS "Whether to enable support for the Headless WPE backend" OFF)
 
@@ -53,9 +53,9 @@ set(WPE_PLATFORM_LIBRARIES
         )
 
 if (USE_VIRTUAL_KEYBOARD)
-    find_package(WPEFrameworkVirtualInput REQUIRED)
+    find_package(ThunderVirtualInput REQUIRED)
     list(APPEND WPE_PLATFORM_LIBRARIES
-        WPEFrameworkVirtualInput::WPEFrameworkVirtualInput
+        ThunderVirtualInput::ThunderVirtualInput
     )
     add_definitions(-DKEY_INPUT_HANDLING_VIRTUAL=1)
 endif()
@@ -121,8 +121,8 @@ if (USE_BACKEND_REALTEK)
     include(src/realtek-wl-egl/CMakeLists.txt)
 endif ()
 
-if (USE_BACKEND_WPEFRAMEWORK)
-    include(src/wpeframework/CMakeLists.txt)
+if (USE_BACKEND_THUNDER)
+    include(src/thunder/CMakeLists.txt)
 endif ()
 
 if (USE_BACKEND_WAYLAND_EGL)

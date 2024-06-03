@@ -34,7 +34,7 @@
 #include <string>
 #include <string.h>
 
-namespace WPEFramework {
+namespace Thunder {
 
 struct EGLTarget : public IPC::Client::Handler {
     EGLTarget(struct wpe_renderer_backend_egl_target*, int);
@@ -127,15 +127,15 @@ void EGLTarget::handleMessage(char* data, size_t size)
     };
 }
 
-} // namespace WPEFramework
+} // namespace Thunder
 
 extern "C" {
 
-struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_interface = {
+struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface = {
     // create
     [](int input) -> void*
     {
-        return WPEFramework::Compositor::IDisplay::Instance(WPEFramework::DisplayName());
+        return Thunder::Compositor::IDisplay::Instance(Thunder::DisplayName());
     },
     // destroy
     [](void* data)
@@ -144,33 +144,33 @@ struct wpe_renderer_backend_egl_interface wpeframework_renderer_backend_egl_inte
     // get_native_display
     [](void* data) -> EGLNativeDisplayType
     {
-        return WPEFramework::Compositor::IDisplay::Instance(WPEFramework::DisplayName())->Native();
+        return Thunder::Compositor::IDisplay::Instance(Thunder::DisplayName())->Native();
     }
 };
 
-struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_egl_target_interface = {
+struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_target_interface = {
     // create
     [](struct wpe_renderer_backend_egl_target* target, int host_fd) -> void*
     {
-        return new WPEFramework::EGLTarget(target, host_fd);
+        return new Thunder::EGLTarget(target, host_fd);
     },
     // destroy
     [](void* data)
     {
-        WPEFramework::EGLTarget* target(static_cast<WPEFramework::EGLTarget*>(data));
+        Thunder::EGLTarget* target(static_cast<Thunder::EGLTarget*>(data));
         delete target;
     },
     // initialize
     [](void* data, void* backend_data, uint32_t width, uint32_t height)
     {
         struct wpe_view_backend* backend (static_cast<struct wpe_view_backend*>(backend_data));
-        WPEFramework::EGLTarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
+        Thunder::EGLTarget& target (*static_cast<Thunder::EGLTarget*>(data));
         target.initialize(backend, width, height);
     },
     // get_native_window
     [](void* data) -> EGLNativeWindowType
     {
-        return static_cast<WPEFramework::EGLTarget*>(data)->Native();
+        return static_cast<Thunder::EGLTarget*>(data)->Native();
     },
     // resize
     [](void* data, uint32_t width, uint32_t height)
@@ -183,7 +183,7 @@ struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_e
     // frame_rendered
     [](void* data)
     {
-        WPEFramework::EGLTarget& target (*static_cast<WPEFramework::EGLTarget*>(data));
+        Thunder::EGLTarget& target (*static_cast<Thunder::EGLTarget*>(data));
 
         /* bool */ target.display.vSyncCallback ();
 
@@ -197,7 +197,7 @@ struct wpe_renderer_backend_egl_target_interface wpeframework_renderer_backend_e
     },
 };
 
-struct wpe_renderer_backend_egl_offscreen_target_interface wpeframework_renderer_backend_egl_offscreen_target_interface = {
+struct wpe_renderer_backend_egl_offscreen_target_interface thunder_renderer_backend_egl_offscreen_target_interface = {
     // create
     []() -> void*
     {

@@ -58,8 +58,8 @@
 #include "viv-imx6/interfaces.h"
 #endif
 
-#ifdef BACKEND_WPEFRAMEWORK
-#include "wpeframework/interfaces.h"
+#ifdef BACKEND_THUNDER
+#include "thunder/interfaces.h"
 #endif
 
 #ifdef BACKEND_ESSOS
@@ -190,16 +190,16 @@ struct wpe_loader_interface _wpe_loader_interface = {
             return &viv_imx6_view_backend_interface;
 #endif
 
-#ifdef BACKEND_WPEFRAMEWORK
+#ifdef BACKEND_THUNDER
         if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_interface"))
-            return &wpeframework_renderer_backend_egl_interface;
+            return &thunder_renderer_backend_egl_interface;
         if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_target_interface"))
-            return &wpeframework_renderer_backend_egl_target_interface;
+            return &thunder_renderer_backend_egl_target_interface;
         if (!std::strcmp(object_name, "_wpe_renderer_backend_egl_offscreen_target_interface"))
-            return &wpeframework_renderer_backend_egl_offscreen_target_interface;
+            return &thunder_renderer_backend_egl_offscreen_target_interface;
 
         if (!std::strcmp(object_name, "_wpe_view_backend_interface"))
-            return &wpeframework_view_backend_interface;
+            return &thunder_view_backend_interface;
 #endif
 
 #ifdef BACKEND_ESSOS
