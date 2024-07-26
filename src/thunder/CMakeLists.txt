@@ -1,11 +1,11 @@
 find_package(Wayland QUIET)
 find_package(WaylandEGL QUIET)
 find_package(EGL REQUIRED)
-find_package(compositorclient REQUIRED)
+find_package(ClientCompositor REQUIRED)
 
 message(STATUS "Building with compositor client")
 list(APPEND WPE_PLATFORM_LIBRARIES
-    compositorclient::compositorclient
+    ClientCompositor::ClientCompositor
 )
 
 if (WAYLAND_FOUND AND WAYLAND_EGL_FOUND AND WPE_VERSION VERSION_GREATER 1.4)
