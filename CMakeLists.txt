@@ -53,9 +53,9 @@ set(WPE_PLATFORM_LIBRARIES
         )
 
 if (USE_VIRTUAL_KEYBOARD)
-    find_package(ThunderVirtualInput REQUIRED)
+    find_package(ClientVirtualInput REQUIRED)
     list(APPEND WPE_PLATFORM_LIBRARIES
-        ThunderVirtualInput::ThunderVirtualInput
+        ClientVirtualInput::ClientVirtualInput
     )
     add_definitions(-DKEY_INPUT_HANDLING_VIRTUAL=1)
 endif()
