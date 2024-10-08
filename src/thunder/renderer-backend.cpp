@@ -135,7 +135,7 @@ struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface
     // create
     [](int input) -> void*
     {
-        return Thunder::Compositor::IDisplay::Instance(Thunder::DisplayName());
+        return nullptr;
     },
     // destroy
     [](void* data)
@@ -144,7 +144,18 @@ struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface
     // get_native_display
     [](void* data) -> EGLNativeDisplayType
     {
-        return Thunder::Compositor::IDisplay::Instance(Thunder::DisplayName())->Native();
+        EGLNativeDisplayType native;
+        Thunder::Compositor::IDisplay* display = Thunder::Compositor::IDisplay::Instance(Thunder::DisplayName());
+
+        if (display != nullptr) {
+            native = display->Native();
+            display->Release();
+        }
+        else {
+            native = EGL_NO_DISPLAY;
+        }
+
+        return native;
     }
 };
 
