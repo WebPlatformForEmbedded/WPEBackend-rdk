@@ -151,6 +151,9 @@ struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface
             native = display->Native();
             display->Release();
         }
+        else {
+            native = EGL_NO_DISPLAY;
+        }
 
         return native;
     }
