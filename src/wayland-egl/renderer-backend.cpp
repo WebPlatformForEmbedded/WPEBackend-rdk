@@ -107,13 +107,18 @@ EGLTarget::EGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
 
 void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
 {
+    uint32_t fullscreen = false;
+    char *tmp;
     m_backend = &backend;
     m_surface = wl_compositor_create_surface(m_backend->display.interfaces().compositor);
-
+    
     if (!m_surface) {
         fprintf(stderr, "EGLTarget: unable to create wayland surface\n");
         return;
     }
+    
+    if (tmp = std::getenv("WPE_INIT_VIEW_FULLSCREEN"))
+        fullscreen = atoi(tmp);
 
     if (m_backend->display.interfaces().xdg) {
         m_xdgSurface = xdg_wm_base_get_xdg_surface(m_backend->display.interfaces().xdg, m_surface);
@@ -142,7 +147,8 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
         if (m_shellSurface) {
             wl_shell_surface_add_listener(m_shellSurface,
                                           &shell_surface_listener, NULL);
-            // wl_shell_surface_set_toplevel(m_shellSurface);
+        wl_shell_surface_set_toplevel(m_shellSurface);
+        if (fullscreen)
             wl_shell_surface_set_fullscreen(m_shellSurface, WL_SHELL_SURFACE_FULLSCREEN_METHOD_DEFAULT, 0, NULL);
         }
     }
