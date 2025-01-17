@@ -32,12 +32,6 @@
 #include "ipc-buffer.h"
 #include <array>
 
-#define __RPI_BACKEND_VSYNC__ 1
-
-#ifdef __RPI_BACKEND_VSYNC__
-#include "bcm_host.h"
-#endif
-
 #define WIDTH 1280
 #define HEIGHT 720
 
@@ -53,24 +47,12 @@ struct ViewBackend : public IPC::Host::Handler {
 
     void initialize();
 
-    static gboolean vsyncCallback(gpointer);
-
     struct wpe_view_backend* backend;
     std::array<struct wpe_input_touch_event_raw, 10> touchpoints;
     IPC::Host ipcHost;
-    GSource* vsyncSource;
-    bool triggered;
-
-    #ifdef __RPI_BACKEND_VSYNC__
-    DISPMANX_DISPLAY_HANDLE_T displayHandle;
-    #endif
 };
 
-#ifdef __RPI_BACKEND_VSYNC__
-static void VSyncCallback(DISPMANX_UPDATE_HANDLE_T update, void* userData);
-#endif
-
-static GSource* MaxFPS() {
+static uint32_t MaxFPS() {
     uint32_t tickDelay = 10; // 100 frames per second should be MAX and the default.
     const char* max_FPS = ::getenv("WEBKIT_MAXIMUM_FPS");
 
@@ -78,46 +60,21 @@ static GSource* MaxFPS() {
         uint32_t configValue = ::atoi(max_FPS);
         if ((configValue >= 1) && (configValue <= 100)) {
             tickDelay = (1000 / configValue);
-
-        }
-        if (configValue == 0) {
-            tickDelay = 0;
         }
     }
-   
-    return (tickDelay > 0 ? g_timeout_source_new(tickDelay) : nullptr);
+    return (tickDelay);
 }
-
+ 
 ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     : backend(backend)
-    , vsyncSource(MaxFPS())
-    , triggered(false)
-    #ifdef __RPI_BACKEND_VSYNC__
-    , displayHandle(NULL)
-    #endif
 {
     ipcHost.initialize(*this);
-
-    if (vsyncSource != nullptr) {
-        g_source_set_callback(vsyncSource, static_cast<GSourceFunc>(vsyncCallback), this, nullptr);
-        g_source_set_priority(vsyncSource, G_PRIORITY_HIGH + 30);
-        g_source_set_can_recurse(vsyncSource, TRUE);
-        g_source_attach(vsyncSource, g_main_context_get_thread_default());
-    }
 
     touchpoints.fill({ wpe_input_touch_event_type_null, 0, 0, 0, 0 });
 }
 
 ViewBackend::~ViewBackend()
 {
-    if (vsyncSource != nullptr) {
-        g_source_destroy(vsyncSource);
-    }
-    #ifdef __RPI_BACKEND_VSYNC__
-    else if (displayHandle != NULL) {
-        vc_dispmanx_display_close(displayHandle);
-    }
-    #endif
     ipcHost.deinitialize();
 }
 
@@ -169,6 +126,15 @@ void ViewBackend::handleMessage(char* data, size_t size)
         wpe_view_backend_dispatch_keyboard_event(backend, event);
         break;
     }
+    case IPC::BufferCommit::code:
+    {
+    	IPC::Message message;
+    	IPC::FrameComplete::construct(message);
+    	ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
+
+	wpe_view_backend_dispatch_frame_displayed(backend);
+        break;
+    }
     case IPC::AdjustedDimensions::code:
     {
         IPC::AdjustedDimensions dimensions = IPC::AdjustedDimensions::cast(message);
@@ -176,11 +142,6 @@ void ViewBackend::handleMessage(char* data, size_t size)
         wpe_view_backend_dispatch_set_size(backend, dimensions.width, dimensions.height);
 
         fprintf(stdout,"Adjusted (internal buffer) dimensions to %u x %u\n", dimensions.width, dimensions.height);
-        break;
-    }
-    case IPC::BufferCommit::code:
-    {
-        triggered = true;
         break;
     }
     default:
@@ -202,38 +163,7 @@ void ViewBackend::initialize()
         height = ::atoi(height_text);
     }
     wpe_view_backend_dispatch_set_size( backend, width, height);
-
-    #ifdef __RPI_BACKEND_VSYNC__
-    if (vsyncSource == nullptr) {
-        displayHandle = vc_dispmanx_display_open(0);
-        vc_dispmanx_vsync_callback(displayHandle, VSyncCallback, this);
-    }
-    #endif
 }
-
-/* static */ gboolean ViewBackend::vsyncCallback(gpointer data)
-{
-    ViewBackend* impl = static_cast<ViewBackend*>(data);
-
-    if (impl->triggered) {
-        impl->triggered = false;
-        IPC::Message message;
-        IPC::FrameComplete::construct(message);
-        impl->ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
-
-        wpe_view_backend_dispatch_frame_displayed(impl->backend);
-    }
-
-    return (G_SOURCE_CONTINUE);
-}
-
-#ifdef __RPI_BACKEND_VSYNC__
-static void VSyncCallback(DISPMANX_UPDATE_HANDLE_T update, void* userData)
-{
-    ViewBackend::vsyncCallback((gpointer) userData);
-} 
-#endif
-
 
 } // namespace Thunder
 
