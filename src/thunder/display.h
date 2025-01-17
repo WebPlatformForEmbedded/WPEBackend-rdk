@@ -29,8 +29,8 @@
 
 #include "ipc.h"
 #include <assert.h>
-#include <wpe/wpe.h>
 #include <compositor/Client.h>
+#include <wpe/wpe.h>
 
 struct wpe_view_backend;
 
@@ -38,39 +38,42 @@ typedef struct _GSource GSource;
 
 namespace Thunder {
 
-class KeyboardHandler : public Compositor::IDisplay::IKeyboard
-{
+class KeyboardHandler : public Compositor::IDisplay::IKeyboard {
 private:
-    KeyboardHandler () = delete;
-    KeyboardHandler (const KeyboardHandler&) = delete;
-    KeyboardHandler& operator= (const KeyboardHandler&) = delete;
+    KeyboardHandler() = delete;
+    KeyboardHandler(const KeyboardHandler&) = delete;
+    KeyboardHandler& operator=(const KeyboardHandler&) = delete;
 
 public:
     enum modifiers {
-       shift     = 0x01,
-       control   = 0x02,
-       alternate = 0x04
+        shift = 0x01,
+        control = 0x02,
+        alternate = 0x04
     };
 
     struct IKeyHandler {
-        virtual ~IKeyHandler() {}
-        virtual void Key (const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) = 0;
-        virtual void Key (const uint32_t key, const Compositor::IDisplay::IKeyboard::state action) = 0;
+        virtual ~IKeyHandler() { }
+        virtual void Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) = 0;
+        virtual void Key(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action) = 0;
     };
 
 public:
-    KeyboardHandler (IKeyHandler* callback)
+    KeyboardHandler(IKeyHandler* callback)
         : _callback(callback)
-        , _modifiers(0) {
+        , _modifiers(0)
+    {
     }
-    virtual ~KeyboardHandler() {
+    virtual ~KeyboardHandler()
+    {
     }
 
 public:
-    virtual uint32_t AddRef() const {
+    virtual uint32_t AddRef() const
+    {
         return (0);
     }
-    virtual uint32_t Release() const {
+    virtual uint32_t Release() const
+    {
         return (0);
     }
     virtual void KeyMap(const char information[], const uint16_t size) override;
@@ -100,16 +103,19 @@ private:
 
 class WheelHandler : public Compositor::IDisplay::IWheel {
 public:
-    WheelHandler () = delete;
-    WheelHandler (const WheelHandler&) = delete;
-    WheelHandler& operator= (const WheelHandler&) = delete;
+    WheelHandler() = delete;
+    WheelHandler(const WheelHandler&) = delete;
+    WheelHandler& operator=(const WheelHandler&) = delete;
 
     struct IWheelMotionHandler {
         virtual ~IWheelMotionHandler() { }
         virtual void WheelMotion(const int16_t horizontal, const int16_t vertical) = 0;
     };
 
-    WheelHandler (IWheelMotionHandler* callback) : _callback(callback) { }
+    WheelHandler(IWheelMotionHandler* callback)
+        : _callback(callback)
+    {
+    }
     ~WheelHandler() { }
 
     uint32_t AddRef() const override { return (0); }
@@ -125,7 +131,7 @@ class PointerHandler : public Compositor::IDisplay::IPointer {
 public:
     PointerHandler() = delete;
     PointerHandler(const PointerHandler&) = delete;
-    PointerHandler& operator= (const PointerHandler&) = delete;
+    PointerHandler& operator=(const PointerHandler&) = delete;
 
     struct IPointerEventHandler {
         virtual ~IPointerEventHandler() { }
@@ -139,7 +145,8 @@ public:
         , _y(0)
         , _button(0)
         , _modifiers(0)
-    { }
+    {
+    }
     ~PointerHandler() { }
 
     uint32_t AddRef() const override { return (0); }
@@ -161,7 +168,7 @@ class TouchPanelHandler : public Compositor::IDisplay::ITouchPanel {
 public:
     TouchPanelHandler() = delete;
     TouchPanelHandler(const TouchPanelHandler&) = delete;
-    TouchPanelHandler& operator= (const TouchPanelHandler&) = delete;
+    TouchPanelHandler& operator=(const TouchPanelHandler&) = delete;
 
     struct ITouchEventHandler {
         virtual ~ITouchEventHandler() { }
@@ -170,7 +177,8 @@ public:
 
     TouchPanelHandler(ITouchEventHandler* callback)
         : _callback(callback)
-    { }
+    {
+    }
     ~TouchPanelHandler() { }
 
     uint32_t AddRef() const override { return (0); }
@@ -188,17 +196,16 @@ class Display : public KeyboardHandler::IKeyHandler,
                 public TouchPanelHandler::ITouchEventHandler {
 private:
     Display() = delete;
-    Display (const Display&) = delete;
-    Display& operator= (const Display&) = delete;
+    Display(const Display&) = delete;
+    Display& operator=(const Display&) = delete;
 
 public:
-    enum MsgType
-    {
-	AXIS = 0x30,
-	POINTER,
-	TOUCH,
-    TOUCHSIMPLE,
-	KEYBOARD
+    enum MsgType {
+        AXIS = 0x30,
+        POINTER,
+        TOUCH,
+        TOUCHSIMPLE,
+        KEYBOARD
     };
 
 public:
@@ -206,7 +213,8 @@ public:
     ~Display();
 
 public:
-   inline Compositor::IDisplay::ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height) {
+    inline Compositor::IDisplay::ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height)
+    {
         Compositor::IDisplay::ISurface* newSurface = m_display->Create(name, width, height);
         if (newSurface != nullptr) {
             newSurface->Keyboard(&m_keyboard);
@@ -216,8 +224,9 @@ public:
         }
         return (newSurface);
     }
-    inline void Backend(struct wpe_view_backend* backend) {
-        assert(((backend == nullptr) ^ (m_backend == nullptr)) || (backend == m_backend) );
+    inline void Backend(struct wpe_view_backend* backend)
+    {
+        assert(((backend == nullptr) ^ (m_backend == nullptr)) || (backend == m_backend));
         m_backend = backend;
     }
 
@@ -226,10 +235,9 @@ public:
     void SendEvent(wpe_input_touch_event& event);
     void SendEvent(wpe_input_touch_event_raw& event);
 
-    bool vSyncCallback ();
+    bool vSyncCallback();
 
 private:
-
     virtual void Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
     virtual void Key(const uint32_t key, const Compositor::IDisplay::IKeyboard::state action);
     virtual void WheelMotion(const int16_t horizontal, const int16_t vertical) override;

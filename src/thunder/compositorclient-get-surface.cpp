@@ -23,49 +23,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wayland-egl.h>
-#include <wayland-egl-backend.h>
 #include "compositorclient-get-surface.h"
 #include "display.h"
-#include <wpe/wpe-egl.h>
 #include <compositor/Client.h>
 #include <cstring>
+#include <wayland-egl-backend.h>
+#include <wayland-egl.h>
+#include <wpe/wpe-egl.h>
 
 namespace Thunder {
 
 extern "C" {
 
-__attribute__((visibility("default")))
-void* wpe_compositorclient_get_parent_surface(struct wpe_renderer_backend_egl* backend)
+__attribute__((visibility("default"))) void* wpe_compositorclient_get_parent_surface(struct wpe_renderer_backend_egl* backend)
 {
     Compositor::IDisplay::ISurface* surface = nullptr;
     void* nativesurface = nullptr;
     EGLNativeWindowType nativewindow;
 
     if (!backend)
-      return nativesurface;;
+        return nativesurface;
+    ;
 
     auto* base = reinterpret_cast<struct wpe_renderer_backend_egl_base*>(backend);
     auto* display = reinterpret_cast<Thunder::Compositor::IDisplay*>(base->interface_data);
 
-    //get the ISurface from the IDisplay
+    // get the ISurface from the IDisplay
     if (display)
         surface = display->SurfaceByName(Compositor::IDisplay::SuggestedName());
 
-    //get the native surface
+    // get the native surface
     if (surface != nullptr) {
-	    nativewindow = surface->Native();
+        nativewindow = surface->Native();
 #if defined WL_EGL_PLATFORM
-	    // On wayland EGLNativeWindowType is struct wl_egl_window * that contains the surface
-	    if(nativewindow != nullptr){
-            nativesurface  = reinterpret_cast<wl_egl_window*>(nativewindow)->surface;
+        // On wayland EGLNativeWindowType is struct wl_egl_window * that contains the surface
+        if (nativewindow != nullptr) {
+            nativesurface = reinterpret_cast<wl_egl_window*>(nativewindow)->surface;
         }
 #endif
     }
 
     return nativesurface;
 }
-
 }
 
 }

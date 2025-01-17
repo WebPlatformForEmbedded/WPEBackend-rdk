@@ -28,8 +28,8 @@
 #ifndef thunder_interfaces_h
 #define thunder_interfaces_h
 
-#include <wpe/wpe.h>
 #include <wpe/wpe-egl.h>
+#include <wpe/wpe.h>
 
 #ifdef __cplusplus
 extern "C" {
