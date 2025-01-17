@@ -25,9 +25,9 @@
  */
 
 #include "display.h"
-#include <cstring>
-#include <chrono>
 #include <KeyMapper/KeyMapperWpe.h>
+#include <chrono>
+#include <cstring>
 
 namespace Thunder {
 
@@ -59,12 +59,14 @@ void KeyboardHandler::RepeatKeyEvent()
     HandleKeyEvent(_repeatData.key, _repeatData.state, _repeatData.time);
 }
 
-void KeyboardHandler::RepeatDelayTimeout() {
+void KeyboardHandler::RepeatDelayTimeout()
+{
     RepeatKeyEvent();
     _repeatData.eventSource = g_timeout_add(_repeatInfo.rate, static_cast<GSourceFunc>(repeatRateTimeout), this);
 }
 
-void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
+void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state action, const uint32_t time)
+{
 
     // Send the event, it is complete..
     _callback->Key(action == IKeyboard::pressed, WPE::KeyMapper::KeyCodeToWpeKey(key, _modifiers), key, _modifiers, time);
@@ -75,10 +77,12 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
     _callback->Key(key, action);
 }
 
-/* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size) {
+/* virtual */ void KeyboardHandler::KeyMap(const char information[], const uint16_t size)
+{
 }
 
-/* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time) {
+/* virtual */ void KeyboardHandler::Key(const uint32_t key, const IKeyboard::state action, const uint32_t time)
+{
     // IDK.
     HandleKeyEvent(key, action, time);
 
@@ -87,27 +91,28 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
             if (_repeatData.eventSource)
                 g_source_remove(_repeatData.eventSource);
             _repeatData = { 0, 0, IKeyboard::released, 0 };
-        }
-        else if (action == IKeyboard::pressed) {
-        // TODO: add code to handle repeat key
+        } else if (action == IKeyboard::pressed) {
+            // TODO: add code to handle repeat key
         }
     }
 }
 
-/* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group) {
-  unsigned int modifiers = 0;
+/* virtual */ void KeyboardHandler::Modifiers(uint32_t depressedMods, uint32_t latchedMods, uint32_t lockedMods, uint32_t group)
+{
+    unsigned int modifiers = 0;
 
-  if (depressedMods & 1)
-    modifiers |= wpe_input_keyboard_modifier_shift;
-  if (depressedMods & 4)
-    modifiers |= wpe_input_keyboard_modifier_control;
-  if (depressedMods & 8)
-    modifiers |= wpe_input_keyboard_modifier_alt;
+    if (depressedMods & 1)
+        modifiers |= wpe_input_keyboard_modifier_shift;
+    if (depressedMods & 4)
+        modifiers |= wpe_input_keyboard_modifier_control;
+    if (depressedMods & 8)
+        modifiers |= wpe_input_keyboard_modifier_alt;
 
-  _modifiers = modifiers;
+    _modifiers = modifiers;
 }
 
-/* virtual */ void KeyboardHandler::Repeat(int32_t rate, int32_t delay) {
+/* virtual */ void KeyboardHandler::Repeat(int32_t rate, int32_t delay)
+{
     _repeatInfo = { rate, delay };
 
     // A rate of zero disables any repeating.
@@ -132,7 +137,7 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 // Pointer handling
 // -----------------------------------------------------------------------------------------
 
-/* virtual */  void PointerHandler::Direct(const uint8_t button, const IPointer::state state)
+/* virtual */ void PointerHandler::Direct(const uint8_t button, const IPointer::state state)
 {
     _button = (button + 1);
 
@@ -159,7 +164,7 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
     _callback->PointerButton(_button, _state, _x, _y, _modifiers);
 }
 
-/* virtual */  void PointerHandler::Direct(const uint16_t x, const uint16_t y)
+/* virtual */ void PointerHandler::Direct(const uint16_t x, const uint16_t y)
 {
     _x = x;
     _y = y;
@@ -170,61 +175,62 @@ void KeyboardHandler::HandleKeyEvent(const uint32_t key, const IKeyboard::state 
 // Touch panel handling
 // -----------------------------------------------------------------------------------------
 
-/* virtual */  void TouchPanelHandler::Direct(const uint8_t index, const ITouchPanel::state state, const uint16_t x, const uint16_t y)
+/* virtual */ void TouchPanelHandler::Direct(const uint8_t index, const ITouchPanel::state state, const uint16_t x, const uint16_t y)
 {
     _callback->Touch(index, state, x, y);
 }
 
-gboolean vsyncCallback (gpointer data) {
-    Compositor::IDisplay* _display = static_cast <Compositor::IDisplay *> (data);
+gboolean vsyncCallback(gpointer data)
+{
+    Compositor::IDisplay* _display = static_cast<Compositor::IDisplay*>(data);
 
     if (_display != nullptr) {
-        /* int */ _display->Process (0);
+        /* int */ _display->Process(0);
     }
 
     return TRUE;
 }
 
- class EventSource {
- public:
-     static GSourceFuncs sourceFuncs;
+class EventSource {
+public:
+    static GSourceFuncs sourceFuncs;
 
-     GSource source;
-     GPollFD pfd;
-     Compositor::IDisplay* display;
-     signed int result;
- };
+    GSource source;
+    GPollFD pfd;
+    Compositor::IDisplay* display;
+    signed int result;
+};
 
- GSourceFuncs EventSource::sourceFuncs = {
-     // prepare
-     [](GSource* base, gint* timeout) -> gboolean {
-         *timeout = -1;
-         return FALSE;
-     },
-     // check
-     [](GSource* base) -> gboolean {
-         EventSource& source(*(reinterpret_cast<EventSource*>(base)));
+GSourceFuncs EventSource::sourceFuncs = {
+    // prepare
+    [](GSource* base, gint* timeout) -> gboolean {
+        *timeout = -1;
+        return FALSE;
+    },
+    // check
+    [](GSource* base) -> gboolean {
+        EventSource& source(*(reinterpret_cast<EventSource*>(base)));
 
-         source.result = source.display->Process(source.pfd.revents & G_IO_IN);
+        source.result = source.display->Process(source.pfd.revents & G_IO_IN);
 
-         return (source.result >= 0 ? TRUE : FALSE);
-     },
-     // dispatch
-     [](GSource* base, GSourceFunc, gpointer) -> gboolean {
-         EventSource& source(*(reinterpret_cast<EventSource*>(base)));
+        return (source.result >= 0 ? TRUE : FALSE);
+    },
+    // dispatch
+    [](GSource* base, GSourceFunc, gpointer) -> gboolean {
+        EventSource& source(*(reinterpret_cast<EventSource*>(base)));
 
-         if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
-             fprintf(stderr, "Compositor::Display: error in compositor dispatch\n");
-             return G_SOURCE_REMOVE;
-         }
+        if ((source.result == 1) || (source.pfd.revents & (G_IO_ERR | G_IO_HUP))) {
+            fprintf(stderr, "Compositor::Display: error in compositor dispatch\n");
+            return G_SOURCE_REMOVE;
+        }
 
-         source.pfd.revents = 0;
-         return G_SOURCE_CONTINUE;
-     },
-     nullptr, // finalize
-     nullptr, // closure_callback
-     nullptr, // closure_marshall
- };
+        source.pfd.revents = 0;
+        return G_SOURCE_CONTINUE;
+    },
+    nullptr, // finalize
+    nullptr, // closure_callback
+    nullptr, // closure_marshall
+};
 
 // -----------------------------------------------------------------------------------------
 // Display wrapper around the wayland abstraction class
@@ -257,7 +263,8 @@ Display::Display(IPC::Client& ipc, const std::string& name)
     }
 }
 
-static constexpr gint FD_TIMEOUT () {
+static constexpr gint FD_TIMEOUT()
+{
     // Milliseconds
     // -1, infinite
     // 0, immediate
@@ -265,47 +272,49 @@ static constexpr gint FD_TIMEOUT () {
     return 0;
 }
 
-bool Display::vSyncCallback () {
-    static_assert (std::is_integral < gint >::value, "Integral type required");
-    static_assert (std::is_integral < decltype (m_display->FileDescriptor ()) >::value, "Integral type required");
-    static_assert (std::numeric_limits < gint >::min () >= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::min (), "Integer range exceeded");
-    static_assert (std::numeric_limits < gint >::max () <= std::numeric_limits < decltype (m_display->FileDescriptor ()) >::max (), "Integer range exceeded");
+bool Display::vSyncCallback()
+{
+    static_assert(std::is_integral<gint>::value, "Integral type required");
+    static_assert(std::is_integral<decltype(m_display->FileDescriptor())>::value, "Integral type required");
+    static_assert(std::numeric_limits<gint>::min() >= std::numeric_limits<decltype(m_display->FileDescriptor())>::min(), "Integer range exceeded");
+    static_assert(std::numeric_limits<gint>::max() <= std::numeric_limits<decltype(m_display->FileDescriptor())>::max(), "Integer range exceeded");
 
-    static gint _fd = m_display->FileDescriptor ();
+    static gint _fd = m_display->FileDescriptor();
 
     gushort _flags = 0;
 
     if (_fd != -1) {
         // Watchh for data to read, errors or broken connection
-        GPollFD _gfd =  {_fd, /* events to poll */ G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL, /* resulting events of poll */ _flags};
+        GPollFD _gfd = { _fd, /* events to poll */ G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL, /* resulting events of poll */ _flags };
 
-        switch (g_poll (&_gfd, /* number of entries */ 1, /* timeout */ FD_TIMEOUT ())) {
-            case -1 :   // Error
-            case 0  :   // Timed out, always for timeout equal 0
-                        _flags = 0;
-                        break;
-            default :   // Return value should match g_poll's second field
-                        // Signal there is data to read
-                        _flags = _gfd.revents & (G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL);
+        switch (g_poll(&_gfd, /* number of entries */ 1, /* timeout */ FD_TIMEOUT())) {
+        case -1: // Error
+        case 0: // Timed out, always for timeout equal 0
+            _flags = 0;
+            break;
+        default: // Return value should match g_poll's second field
+            // Signal there is data to read
+            _flags = _gfd.revents & (G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL);
         }
-     }
+    }
 
-    static_assert (std::is_integral < decltype (_flags) >::value, "Integral type required");
-    static_assert (std::numeric_limits < decltype (_flags) >::min () >= std::numeric_limits < uint32_t >::min (), "Integer range exceeded");
-    static_assert (std::numeric_limits < decltype (_flags) >::max () <= std::numeric_limits < uint32_t >::max (), "Integer range exceeded");
+    static_assert(std::is_integral<decltype(_flags)>::value, "Integral type required");
+    static_assert(std::numeric_limits<decltype(_flags)>::min() >= std::numeric_limits<uint32_t>::min(), "Integer range exceeded");
+    static_assert(std::numeric_limits<decltype(_flags)>::max() <= std::numeric_limits<uint32_t>::max(), "Integer range exceeded");
 
     // If the loop 'runs' too fast check the implementation of Process
     // You may want to add a delay based on the underlying platform just there
 
-    return (m_display != nullptr ? 0 == m_display->Process (_flags) : false);
+    return (m_display != nullptr ? 0 == m_display->Process(_flags) : false);
 }
- 
+
 Display::~Display()
 {
     m_display->Release();
 }
 
-/* virtual */ void Display::Key (const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions) {
+/* virtual */ void Display::Key(const uint32_t keycode, const Compositor::IDisplay::IKeyboard::state actions)
+{
     uint32_t actual_key = keycode + 8;
     uint32_t sendCode = ~0;
 
@@ -317,7 +326,9 @@ Display::~Display()
         }
     }
     sendCode = WPE::KeyMapper::KeyCodeToWpeKey(keycode, _modifiers);
-    struct wpe_input_keyboard_event event{ TimeNow(), sendCode, actual_key, !!actions, _modifiers };
+    struct wpe_input_keyboard_event event {
+        TimeNow(), sendCode, actual_key, !!actions, _modifiers
+    };
     IPC::Message message;
     message.messageCode = MsgType::KEYBOARD;
     std::memcpy(message.messageData, &event, sizeof(event));
@@ -341,7 +352,7 @@ void Display::WheelMotion(const int16_t horizontal, const int16_t vertical)
     const int Y_AXIS = 0;
     const int X_AXIS = 1;
 
-    wpe_input_axis_event event{};
+    wpe_input_axis_event event {};
     event.type = wpe_input_axis_event_type_motion;
     event.time = TimeNow();
 
@@ -370,9 +381,9 @@ void Display::PointerPosition(const uint8_t button, const uint16_t state, const 
 
 void Display::Touch(const uint8_t index, const Compositor::IDisplay::ITouchPanel::state state, const uint16_t x, const uint16_t y)
 {
-    wpe_input_touch_event_type type = ((state == Compositor::IDisplay::ITouchPanel::motion)? wpe_input_touch_event_type_motion
-                                        : ((state == Compositor::IDisplay::ITouchPanel::pressed)? wpe_input_touch_event_type_down
-                                            : wpe_input_touch_event_type_up));
+    wpe_input_touch_event_type type = ((state == Compositor::IDisplay::ITouchPanel::motion) ? wpe_input_touch_event_type_motion
+                                                                                            : ((state == Compositor::IDisplay::ITouchPanel::pressed) ? wpe_input_touch_event_type_down
+                                                                                                                                                     : wpe_input_touch_event_type_up));
 
     wpe_input_touch_event_raw touchpoint = { type, TimeNow(), index, x, y };
     SendEvent(touchpoint);

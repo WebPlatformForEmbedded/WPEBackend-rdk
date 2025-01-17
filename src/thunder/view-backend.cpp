@@ -26,11 +26,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wpe/wpe.h>
 #include "display.h"
-#include "ipc.h"
 #include "ipc-buffer.h"
+#include "ipc.h"
 #include <array>
+#include <wpe/wpe.h>
 
 #define WIDTH 1280
 #define HEIGHT 720
@@ -42,7 +42,7 @@ struct ViewBackend : public IPC::Host::Handler {
     virtual ~ViewBackend();
 
     // IPC::Host::Handler
-    void handleFd(int) override { };
+    void handleFd(int) override {};
     void handleMessage(char*, size_t) override;
 
     void initialize();
@@ -52,7 +52,8 @@ struct ViewBackend : public IPC::Host::Handler {
     IPC::Host ipcHost;
 };
 
-static uint32_t MaxFPS() {
+static uint32_t MaxFPS()
+{
     uint32_t tickDelay = 10; // 100 frames per second should be MAX and the default.
     const char* max_FPS = ::getenv("WEBKIT_MAXIMUM_FPS");
 
@@ -64,7 +65,7 @@ static uint32_t MaxFPS() {
     }
     return (tickDelay);
 }
- 
+
 ViewBackend::ViewBackend(struct wpe_view_backend* backend)
     : backend(backend)
 {
@@ -85,27 +86,24 @@ void ViewBackend::handleMessage(char* data, size_t size)
 
     auto& message = IPC::Message::cast(data);
     switch (message.messageCode) {
-    case Display::MsgType::AXIS:
-    {
-        struct wpe_input_axis_event * event = reinterpret_cast<wpe_input_axis_event*>(std::addressof(message.messageData));
+    case Display::MsgType::AXIS: {
+        struct wpe_input_axis_event* event = reinterpret_cast<wpe_input_axis_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_axis_event(backend, event);
         break;
     }
-    case Display::MsgType::POINTER:
-    {
-        struct wpe_input_pointer_event * event = reinterpret_cast<wpe_input_pointer_event*>(std::addressof(message.messageData));
+    case Display::MsgType::POINTER: {
+        struct wpe_input_pointer_event* event = reinterpret_cast<wpe_input_pointer_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_pointer_event(backend, event);
         break;
     }
     case Display::MsgType::TOUCH: // UNUSED!
     {
-        struct wpe_input_touch_event * event = reinterpret_cast<wpe_input_touch_event*>(std::addressof(message.messageData));
+        struct wpe_input_touch_event* event = reinterpret_cast<wpe_input_touch_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_touch_event(backend, event);
         break;
     }
-    case Display::MsgType::TOUCHSIMPLE:
-    {
-        struct wpe_input_touch_event_raw * tp = reinterpret_cast<wpe_input_touch_event_raw*>(std::addressof(message.messageData));
+    case Display::MsgType::TOUCHSIMPLE: {
+        struct wpe_input_touch_event_raw* tp = reinterpret_cast<wpe_input_touch_event_raw*>(std::addressof(message.messageData));
         if ((tp->id >= 0) && (tp->id < static_cast<int32_t>(touchpoints.size()))) {
             auto& point = touchpoints[tp->id];
             point = { tp->type, tp->time, tp->id, tp->x, tp->y };
@@ -120,28 +118,25 @@ void ViewBackend::handleMessage(char* data, size_t size)
         }
         break;
     }
-    case Display::MsgType::KEYBOARD:
-    {
-        struct wpe_input_keyboard_event * event = reinterpret_cast<wpe_input_keyboard_event*>(std::addressof(message.messageData));
+    case Display::MsgType::KEYBOARD: {
+        struct wpe_input_keyboard_event* event = reinterpret_cast<wpe_input_keyboard_event*>(std::addressof(message.messageData));
         wpe_view_backend_dispatch_keyboard_event(backend, event);
         break;
     }
-    case IPC::BufferCommit::code:
-    {
-    	IPC::Message message;
-    	IPC::FrameComplete::construct(message);
-    	ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
+    case IPC::BufferCommit::code: {
+        IPC::Message message;
+        IPC::FrameComplete::construct(message);
+        ipcHost.sendMessage(IPC::Message::data(message), IPC::Message::size);
 
-	wpe_view_backend_dispatch_frame_displayed(backend);
+        wpe_view_backend_dispatch_frame_displayed(backend);
         break;
     }
-    case IPC::AdjustedDimensions::code:
-    {
+    case IPC::AdjustedDimensions::code: {
         IPC::AdjustedDimensions dimensions = IPC::AdjustedDimensions::cast(message);
 
         wpe_view_backend_dispatch_set_size(backend, dimensions.width, dimensions.height);
 
-        fprintf(stdout,"Adjusted (internal buffer) dimensions to %u x %u\n", dimensions.width, dimensions.height);
+        fprintf(stdout, "Adjusted (internal buffer) dimensions to %u x %u\n", dimensions.width, dimensions.height);
         break;
     }
     default:
@@ -162,7 +157,7 @@ void ViewBackend::initialize()
     if (height_text != nullptr) {
         height = ::atoi(height_text);
     }
-    wpe_view_backend_dispatch_set_size( backend, width, height);
+    wpe_view_backend_dispatch_set_size(backend, width, height);
 }
 
 } // namespace Thunder
@@ -171,28 +166,23 @@ extern "C" {
 
 struct wpe_view_backend_interface thunder_view_backend_interface = {
     // create
-    [](void*, struct wpe_view_backend* backend) -> void*
-    {
+    [](void*, struct wpe_view_backend* backend) -> void* {
         return new Thunder::ViewBackend(backend);
     },
     // destroy
-    [](void* data)
-    {
+    [](void* data) {
         Thunder::ViewBackend* backend = static_cast<Thunder::ViewBackend*>(data);
         delete backend;
     },
     // initialize
-    [](void* data)
-    {
-        Thunder::ViewBackend& backend (*static_cast<Thunder::ViewBackend*>(data));
+    [](void* data) {
+        Thunder::ViewBackend& backend(*static_cast<Thunder::ViewBackend*>(data));
         backend.initialize();
     },
     // get_renderer_host_fd
-    [](void* data) -> int
-    {
-        Thunder::ViewBackend& backend (*static_cast<Thunder::ViewBackend*>(data));
+    [](void* data) -> int {
+        Thunder::ViewBackend& backend(*static_cast<Thunder::ViewBackend*>(data));
         return backend.ipcHost.releaseClientFD();
     },
 };
-
 }

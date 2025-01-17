@@ -27,12 +27,12 @@
 #include <wpe/wpe-egl.h>
 
 #include "display.h"
-#include "ipc.h"
 #include "ipc-buffer.h"
+#include "ipc.h"
 
 #include <chrono>
-#include <string>
 #include <string.h>
+#include <string>
 
 namespace Thunder {
 
@@ -47,7 +47,8 @@ struct EGLTarget : public IPC::Client::Handler {
     struct wpe_renderer_backend_egl_target* target;
     IPC::Client ipcClient;
 
-    EGLNativeWindowType Native() const {
+    EGLNativeWindowType Native() const
+    {
         return (surface->Native());
     }
 
@@ -55,11 +56,12 @@ struct EGLTarget : public IPC::Client::Handler {
     Compositor::IDisplay::ISurface* surface;
 };
 
-static std::string DisplayName() {
+static std::string DisplayName()
+{
     std::string name = Compositor::IDisplay::SuggestedName();
 
     if (name.empty()) {
-         name = "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+        name = "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     }
     return (name);
 }
@@ -76,11 +78,11 @@ void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uin
 {
     surface = display.Create(DisplayName(), width, height);
 
-    using width_t = decltype (width);
-    using height_t = decltype (height);
+    using width_t = decltype(width);
+    using height_t = decltype(height);
 
-    using s_width_t = decltype (surface->Width());
-    using s_height_t = decltype (surface->Width());
+    using s_width_t = decltype(surface->Width());
+    using s_height_t = decltype(surface->Width());
 
     static_assert(std::is_integral<s_width_t>::value, "Integral type required");
     static_assert(std::is_integral<s_height_t>::value, "Integral type required");
@@ -93,7 +95,7 @@ void EGLTarget::initialize(struct wpe_view_backend* backend, uint32_t width, uin
 
     assert(s_width >= 0 && s_height >= 0);
 
-    if (width != static_cast <width_t>(s_width) || height != static_cast<height_t>(s_height)) {
+    if (width != static_cast<width_t>(s_width) || height != static_cast<height_t>(s_height)) {
         IPC::Message message;
 
         IPC::AdjustedDimensions::construct(message, surface->Width(), surface->Height());
@@ -112,12 +114,10 @@ EGLTarget::~EGLTarget()
 
 void EGLTarget::handleMessage(char* data, size_t size)
 {
-    if (size == IPC::Message::size)
-    {
+    if (size == IPC::Message::size) {
         auto& message = IPC::Message::cast(data);
         switch (message.messageCode) {
-        case IPC::FrameComplete::code:
-        {
+        case IPC::FrameComplete::code: {
             wpe_renderer_backend_egl_target_dispatch_frame_complete(target);
             break;
         }
@@ -133,25 +133,21 @@ extern "C" {
 
 struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface = {
     // create
-    [](int input) -> void*
-    {
+    [](int input) -> void* {
         return nullptr;
     },
     // destroy
-    [](void* data)
-    {
+    [](void* data) {
     },
     // get_native_display
-    [](void* data) -> EGLNativeDisplayType
-    {
+    [](void* data) -> EGLNativeDisplayType {
         EGLNativeDisplayType native;
         Thunder::Compositor::IDisplay* display = Thunder::Compositor::IDisplay::Instance(Thunder::DisplayName());
 
         if (display != nullptr) {
             native = display->Native();
             display->Release();
-        }
-        else {
+        } else {
             native = EGL_NO_DISPLAY;
         }
 
@@ -161,45 +157,38 @@ struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface
 
 struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_target_interface = {
     // create
-    [](struct wpe_renderer_backend_egl_target* target, int host_fd) -> void*
-    {
+    [](struct wpe_renderer_backend_egl_target* target, int host_fd) -> void* {
         return new Thunder::EGLTarget(target, host_fd);
     },
     // destroy
-    [](void* data)
-    {
+    [](void* data) {
         Thunder::EGLTarget* target(static_cast<Thunder::EGLTarget*>(data));
         delete target;
     },
     // initialize
-    [](void* data, void* backend_data, uint32_t width, uint32_t height)
-    {
-        struct wpe_view_backend* backend (static_cast<struct wpe_view_backend*>(backend_data));
-        Thunder::EGLTarget& target (*static_cast<Thunder::EGLTarget*>(data));
+    [](void* data, void* backend_data, uint32_t width, uint32_t height) {
+        struct wpe_view_backend* backend(static_cast<struct wpe_view_backend*>(backend_data));
+        Thunder::EGLTarget& target(*static_cast<Thunder::EGLTarget*>(data));
         target.initialize(backend, width, height);
     },
     // get_native_window
-    [](void* data) -> EGLNativeWindowType
-    {
+    [](void* data) -> EGLNativeWindowType {
         return static_cast<Thunder::EGLTarget*>(data)->Native();
     },
     // resize
-    [](void* data, uint32_t width, uint32_t height)
-    {
+    [](void* data, uint32_t width, uint32_t height) {
     },
     // frame_will_render
-    [](void* data)
-    {
+    [](void* data) {
     },
     // frame_rendered
-    [](void* data)
-    {
-        Thunder::EGLTarget& target (*static_cast<Thunder::EGLTarget*>(data));
+    [](void* data) {
+        Thunder::EGLTarget& target(*static_cast<Thunder::EGLTarget*>(data));
 
-        /* bool */ target.display.vSyncCallback ();
+        /* bool */ target.display.vSyncCallback();
 
         // The message has to be sent regardless of the vSyncCallback result.
-        // Otherwise, the 'frame complete' is never sent, possibly breaking 
+        // Otherwise, the 'frame complete' is never sent, possibly breaking
         // the feedback loop.
 
         IPC::Message message;
@@ -210,23 +199,18 @@ struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_ta
 
 struct wpe_renderer_backend_egl_offscreen_target_interface thunder_renderer_backend_egl_offscreen_target_interface = {
     // create
-    []() -> void*
-    {
+    []() -> void* {
         return nullptr;
     },
     // destroy
-    [](void* data)
-    {
+    [](void* data) {
     },
     // initialize
-    [](void* data, void* backend_data)
-    {
+    [](void* data, void* backend_data) {
     },
     // get_native_window
-    [](void* data) -> EGLNativeWindowType
-    {
-        return (EGLNativeWindowType) 0;
+    [](void* data) -> EGLNativeWindowType {
+        return (EGLNativeWindowType)0;
     },
 };
-
 }
