@@ -24,10 +24,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef wpe_view_backend_thunder_display_h
-#define wpe_view_backend_thunder_display_h
+#pragma once
 
 #include "ipc.h"
+
 #include <assert.h>
 #include <compositor/Client.h>
 #include <wpe/wpe.h>
@@ -190,15 +190,11 @@ private:
     ITouchEventHandler* _callback;
 };
 
-class Display : public KeyboardHandler::IKeyHandler,
-                public WheelHandler::IWheelMotionHandler,
-                public PointerHandler::IPointerEventHandler,
-                public TouchPanelHandler::ITouchEventHandler {
+class Input : public KeyboardHandler::IKeyHandler,
+              public WheelHandler::IWheelMotionHandler,
+              public PointerHandler::IPointerEventHandler,
+              public TouchPanelHandler::ITouchEventHandler {
 private:
-    Display() = delete;
-    Display(const Display&) = delete;
-    Display& operator=(const Display&) = delete;
-
 public:
     enum MsgType {
         AXIS = 0x30,
@@ -209,33 +205,18 @@ public:
     };
 
 public:
-    Display(IPC::Client& ipc, const std::string& name);
-    ~Display();
+    Input(const Input&) = delete;
+    Input& operator=(const Input&) = delete;
+    Input() = delete;
+
+    Input(IPC::Client& ipc);
+    ~Input();
 
 public:
-    inline Compositor::IDisplay::ISurface* Create(const std::string& name, const uint32_t width, const uint32_t height)
-    {
-        Compositor::IDisplay::ISurface* newSurface = m_display->Create(name, width, height);
-        if (newSurface != nullptr) {
-            newSurface->Keyboard(&m_keyboard);
-            newSurface->Wheel(&m_wheel);
-            newSurface->Pointer(&m_pointer);
-            newSurface->TouchPanel(&m_touchpanel);
-        }
-        return (newSurface);
-    }
-    inline void Backend(struct wpe_view_backend* backend)
-    {
-        assert(((backend == nullptr) ^ (m_backend == nullptr)) || (backend == m_backend));
-        m_backend = backend;
-    }
-
     void SendEvent(wpe_input_axis_event& event);
     void SendEvent(wpe_input_pointer_event& event);
     void SendEvent(wpe_input_touch_event& event);
     void SendEvent(wpe_input_touch_event_raw& event);
-
-    bool vSyncCallback();
 
 private:
     virtual void Key(const bool pressed, uint32_t keycode, uint32_t unicode, uint32_t modifiers, uint32_t time) override;
@@ -246,17 +227,9 @@ private:
     virtual void Touch(const uint8_t index, const Compositor::IDisplay::ITouchPanel::state state, const uint16_t x, const uint16_t y) override;
 
 private:
-    IPC::Client& m_ipc;
-    GSource* m_eventSource;
-    KeyboardHandler m_keyboard;
-    WheelHandler m_wheel;
-    PointerHandler m_pointer;
-    TouchPanelHandler m_touchpanel;
-    struct wpe_view_backend* m_backend;
-    Compositor::IDisplay* m_display;
+    IPC::Client& _ipc;
+    GSource* _eventSource;
     uint32_t _modifiers;
 };
 
 } // namespace Thunder
-
-#endif // wpe_view_backend_thunder_display_h
