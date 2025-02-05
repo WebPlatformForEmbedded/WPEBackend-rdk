@@ -32,6 +32,8 @@
 #include <memory>
 #include <stdint.h>
 
+#include <ipc.h>
+
 namespace IPC {
 
 struct BufferCommit {

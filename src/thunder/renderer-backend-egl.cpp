@@ -1,0 +1,278 @@
+/*
+ * Copyright (C) 2017 Metrological
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include <wpe/wpe-egl.h>
+
+#include "ipc-buffer.h"
+#include "ipc.h"
+
+#include "input.h"
+
+#include <chrono>
+#include <iostream>
+#include <string.h>
+#include <string>
+#include <thread>
+
+namespace Thunder {
+namespace {
+    const std::string SuggestedName()
+    {
+        std::string name = Compositor::IDisplay::SuggestedName();
+
+        if (name.empty()) {
+            name = "WebKitBrowser" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+        }
+        return name;
+    }
+}
+
+class BackendEGL {
+public:
+    BackendEGL(const BackendEGL&) = delete;
+    BackendEGL& operator=(const BackendEGL&) = delete;
+    BackendEGL& operator=(BackendEGL&&) = delete;
+
+    BackendEGL()
+        : _display(Compositor::IDisplay::Instance(SuggestedName()))
+    {
+    }
+
+    ~BackendEGL()
+    {
+        _display->Release();
+    }
+
+    EGLNativeDisplayType Native() const
+    {
+        EGLDisplay display = eglGetDisplay(_display->Native());
+        return (_display != nullptr) ? _display->Native() : EGL_NO_DISPLAY;
+    }
+
+    uint32_t Platform() const
+    {
+        return 0;
+    }
+
+    Compositor::IDisplay::ISurface* Create(const uint32_t width, const uint32_t height, Compositor::IDisplay::ISurface::ICallback* callback, const std::string& name = SuggestedName())
+    {
+        return (_display != nullptr) ? _display->Create(name, width, height, callback) : nullptr;
+    }
+
+private:
+    Compositor::IDisplay* _display;
+};
+
+class BackendEGLTarget : public IPC::Client::Handler, public Compositor::IDisplay::ISurface::ICallback {
+public:
+    BackendEGLTarget() = delete;
+    BackendEGLTarget(const BackendEGLTarget&) = delete;
+    BackendEGLTarget& operator=(const BackendEGLTarget&) = delete;
+    BackendEGLTarget& operator=(BackendEGLTarget&&) = delete;
+
+    BackendEGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
+        : _target(target)
+        , _ipcClient()
+        , _input(_ipcClient)
+        , _keyboard(&_input)
+        , _wheel(&_input)
+        , _pointer(&_input)
+        , _touchpanel(&_input)
+        , _surface()
+        , _triggered(false)
+    {
+        _ipcClient.initialize(*this, hostFd);
+    }
+
+    virtual ~BackendEGLTarget()
+    {
+        Deinitialize();
+        _ipcClient.deinitialize();
+    }
+
+    void Initialize(BackendEGL* backend, uint32_t width, uint32_t height)
+    {
+        _surface = backend->Create(width, height, this);
+
+        if (_surface != nullptr) {
+            _surface->Keyboard(&_keyboard);
+            _surface->Wheel(&_wheel);
+            _surface->Pointer(&_pointer);
+            _surface->TouchPanel(&_touchpanel);
+
+            if ((width != _surface->Width()) || (height != _surface->Height())) {
+                IPC::Message message;
+                IPC::AdjustedDimensions::construct(message, _surface->Width(), _surface->Height());
+                _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
+            }
+        }
+    }
+    void Deinitialize()
+    {
+        if (_surface) {
+            _surface->Keyboard(nullptr);
+            _surface->Wheel(nullptr);
+            _surface->Pointer(nullptr);
+            _surface->TouchPanel(nullptr);
+
+            _surface->Release();
+            _surface = nullptr;
+        }
+    }
+
+    EGLNativeWindowType Native() const
+    {
+        return (_surface != nullptr) ? _surface->Native() : static_cast<EGLNativeWindowType>(0);
+    }
+
+    void FrameRendered()
+    {
+        _triggered = true;
+        _surface->RequestRender();
+    }
+
+private:
+    // IPC::Client::Handler
+    void handleMessage(char* /*data*/, size_t /*size*/) override
+    {
+        // no messages expected
+    }
+
+    // Compositor::IDisplay::ISurface::ICallback
+    void Rendered(Compositor::IDisplay::ISurface*) override
+    {
+    }
+    void Published(Compositor::IDisplay::ISurface*) override
+    {
+        if (_triggered == true) {
+            _triggered = false;
+
+            // Signal that the frame was displayed and can be disposed.
+            wpe_renderer_backend_egl_target_dispatch_frame_complete(_target);
+
+            // Inform the plugin to that a frame was displayed, so it can update it's FPS counter
+            IPC::Message message;
+            IPC::BufferCommit::construct(message);
+            _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
+        }
+    }
+
+private:
+    struct wpe_renderer_backend_egl_target* _target;
+    IPC::Client _ipcClient;
+    Input _input;
+    Thunder::KeyboardHandler _keyboard;
+    Thunder::WheelHandler _wheel;
+    Thunder::PointerHandler _pointer;
+    Thunder::TouchPanelHandler _touchpanel;
+    Compositor::IDisplay::ISurface* _surface;
+    bool _triggered;
+};
+
+} // namespace Thunder
+
+extern "C" {
+struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface = {
+    // create()
+    [](int /*ipc_renderer_host_fd*/) -> void* {
+        return new Thunder::BackendEGL();
+    },
+    // void destroy
+    [](void* data) {
+        Thunder::BackendEGL* backend(static_cast<Thunder::BackendEGL*>(data));
+        delete backend;
+    },
+    // get_native_display
+    [](void* data) -> EGLNativeDisplayType {
+        Thunder::BackendEGL& backend(*static_cast<Thunder::BackendEGL*>(data));
+        return backend.Native();
+    },
+#if WPE_CHECK_VERSION(1, 1, 0)
+    // get_platform
+    [](void* data) -> uint32_t {
+        Thunder::BackendEGL& backend(*static_cast<Thunder::BackendEGL*>(data));
+        return backend.Platform();
+    },
+#endif
+};
+
+struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_target_interface = {
+    // create
+    [](struct wpe_renderer_backend_egl_target* target, int ipc_webview_host_fd) -> void* {
+        return new Thunder::BackendEGLTarget(target, ipc_webview_host_fd);
+    },
+    // destroy
+    [](void* data) {
+        Thunder::BackendEGLTarget* target(static_cast<Thunder::BackendEGLTarget*>(data));
+        delete target;
+    },
+    // initialize
+    [](void* data, void* egl_backend_data, uint32_t width, uint32_t height) {
+        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        target.Initialize(static_cast<Thunder::BackendEGL*>(egl_backend_data), width, height);
+    },
+    // get_native_window
+    [](void* data) -> EGLNativeWindowType {
+        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        return target.Native();
+    },
+    // resize
+    [](void* data, uint32_t width, uint32_t height) {
+    },
+    // frame_will_render
+    [](void* data) {
+    },
+    // frame_rendered
+    [](void* data) {
+        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        target.FrameRendered();
+    },
+#if WPE_CHECK_VERSION(1, 9, 1)
+    // deinitialize
+    [](void* data) {
+        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        target.Deinitialize();
+    },
+#endif
+};
+
+struct wpe_renderer_backend_egl_offscreen_target_interface thunder_renderer_backend_egl_offscreen_target_interface = {
+    // create
+    []() -> void* {
+        return nullptr;
+    },
+    // destroy
+    [](void* data) {
+    },
+    // initialize
+    [](void* data, void* backend_data) {
+    },
+    // get_native_window
+    [](void* data) -> EGLNativeWindowType {
+        return static_cast<EGLNativeWindowType>(0);
+    },
+};
+}
