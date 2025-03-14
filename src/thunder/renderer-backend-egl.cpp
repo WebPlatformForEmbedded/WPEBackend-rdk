@@ -50,50 +50,16 @@ namespace {
     }
 }
 
-class BackendEGL {
+class Display {
 public:
-    BackendEGL(const BackendEGL&) = delete;
-    BackendEGL& operator=(const BackendEGL&) = delete;
-    BackendEGL& operator=(BackendEGL&&) = delete;
-
-    BackendEGL()
-        : _display(Compositor::IDisplay::Instance(SuggestedName()))
-    {
-    }
-
-    ~BackendEGL()
-    {
-        _display->Release();
-    }
-
-    EGLNativeDisplayType Native() const
-    {
-        EGLDisplay display = eglGetDisplay(_display->Native());
-        return (_display != nullptr) ? _display->Native() : EGL_NO_DISPLAY;
-    }
-
-    uint32_t Platform() const
-    {
-        return 0;
-    }
-
-    Compositor::IDisplay::ISurface* Create(const uint32_t width, const uint32_t height, Compositor::IDisplay::ISurface::ICallback* callback, const std::string& name = SuggestedName())
-    {
-        return (_display != nullptr) ? _display->Create(name, width, height, callback) : nullptr;
-    }
-
-private:
-    Compositor::IDisplay* _display;
-};
-
-class BackendEGLTarget : public IPC::Client::Handler, public Compositor::IDisplay::ISurface::ICallback {
+    class Surface : public IPC::Client::Handler, public Compositor::IDisplay::ISurface::ICallback {
 public:
-    BackendEGLTarget() = delete;
-    BackendEGLTarget(const BackendEGLTarget&) = delete;
-    BackendEGLTarget& operator=(const BackendEGLTarget&) = delete;
-    BackendEGLTarget& operator=(BackendEGLTarget&&) = delete;
+        Surface() = delete;
+        Surface(const Surface&) = delete;
+        Surface& operator=(const Surface&) = delete;
+        Surface& operator=(Surface&&) = delete;
 
-    BackendEGLTarget(struct wpe_renderer_backend_egl_target* target, int hostFd)
+        Surface(struct wpe_renderer_backend_egl_target* target, int hostFd)
         : _target(target)
         , _ipcClient()
         , _input(_ipcClient)
@@ -107,13 +73,13 @@ public:
         _ipcClient.initialize(*this, hostFd);
     }
 
-    virtual ~BackendEGLTarget()
+        virtual ~Surface()
     {
         Deinitialize();
         _ipcClient.deinitialize();
     }
 
-    void Initialize(BackendEGL* backend, uint32_t width, uint32_t height)
+        void Initialize(Display* backend, uint32_t width, uint32_t height)
     {
         _surface = backend->Create(width, height, this);
 
@@ -192,28 +158,62 @@ private:
     bool _triggered;
 };
 
+    Display(const Display&) = delete;
+    Display& operator=(const Display&) = delete;
+    Display& operator=(Display&&) = delete;
+
+    Display()
+        : _display(Compositor::IDisplay::Instance(SuggestedName()))
+    {
+    }
+
+    ~Display()
+    {
+        _display->Release();
+        _display = nullptr;
+    }
+
+    EGLNativeDisplayType Native() const
+    {
+        EGLDisplay display = eglGetDisplay(_display->Native());
+        return (_display != nullptr) ? _display->Native() : EGL_NO_DISPLAY;
+    }
+
+    uint32_t Platform() const
+    {
+        return 0;
+    }
+
+    Compositor::IDisplay::ISurface* Create(const uint32_t width, const uint32_t height, Compositor::IDisplay::ISurface::ICallback* callback, const std::string& name = SuggestedName())
+    {
+        return (_display != nullptr) ? _display->Create(name, width, height, callback) : nullptr;
+    }
+
+private:
+    Compositor::IDisplay* _display;
+};
 } // namespace Thunder
 
 extern "C" {
 struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface = {
     // create()
     [](int /*ipc_renderer_host_fd*/) -> void* {
-        return new Thunder::BackendEGL();
+        return new Thunder::Display();
     },
     // void destroy
     [](void* data) {
-        Thunder::BackendEGL* backend(static_cast<Thunder::BackendEGL*>(data));
+        Thunder::Display* backend(static_cast<Thunder::Display*>(data));
         delete backend;
     },
     // get_native_display
     [](void* data) -> EGLNativeDisplayType {
-        Thunder::BackendEGL& backend(*static_cast<Thunder::BackendEGL*>(data));
+        Thunder::Display& backend(*static_cast<Thunder::Display*>(data));
         return backend.Native();
     },
 #if WPE_CHECK_VERSION(1, 1, 0)
     // get_platform
     [](void* data) -> uint32_t {
-        Thunder::BackendEGL& backend(*static_cast<Thunder::BackendEGL*>(data));
+        Thunder::Display& backend(*static_cast<Thunder::Display*>(data));
         return backend.Platform();
     },
 #endif
@@ -222,21 +222,21 @@ struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface
 struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_target_interface = {
     // create
     [](struct wpe_renderer_backend_egl_target* target, int ipc_webview_host_fd) -> void* {
-        return new Thunder::BackendEGLTarget(target, ipc_webview_host_fd);
+        return new Thunder::Display::Surface(target, ipc_webview_host_fd);
     },
     // destroy
     [](void* data) {
-        Thunder::BackendEGLTarget* target(static_cast<Thunder::BackendEGLTarget*>(data));
+        Thunder::Display::Surface* target(static_cast<Thunder::Display::Surface*>(data));
         delete target;
     },
     // initialize
     [](void* data, void* egl_backend_data, uint32_t width, uint32_t height) {
-        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
-        target.Initialize(static_cast<Thunder::BackendEGL*>(egl_backend_data), width, height);
+        Thunder::Display::Surface& target(*static_cast<Thunder::Display::Surface*>(data));
+        target.Initialize(static_cast<Thunder::Display*>(egl_backend_data), width, height);
     },
     // get_native_window
     [](void* data) -> EGLNativeWindowType {
-        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        Thunder::Display::Surface& target(*static_cast<Thunder::Display::Surface*>(data));
         return target.Native();
     },
     // resize
@@ -247,13 +247,13 @@ struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_ta
     },
     // frame_rendered
     [](void* data) {
-        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        Thunder::Display::Surface& target(*static_cast<Thunder::Display::Surface*>(data));
         target.FrameRendered();
     },
 #if WPE_CHECK_VERSION(1, 9, 1)
     // deinitialize
     [](void* data) {
-        Thunder::BackendEGLTarget& target(*static_cast<Thunder::BackendEGLTarget*>(data));
+        Thunder::Display::Surface& target(*static_cast<Thunder::Display::Surface*>(data));
         target.Deinitialize();
     },
 #endif
