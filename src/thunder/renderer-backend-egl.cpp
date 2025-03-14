@@ -52,111 +52,147 @@ namespace {
 
 class Display {
 public:
+    class OffscreenSurface {
+        static constexpr uint16_t DefaultHeight = 720;
+        static constexpr uint16_t DefaultWidth = 1280;
+
+    public:
+        OffscreenSurface(const OffscreenSurface&) = delete;
+        OffscreenSurface& operator=(const OffscreenSurface&) = delete;
+        OffscreenSurface& operator=(OffscreenSurface&&) = delete;
+
+        OffscreenSurface()
+            : _surface(nullptr)
+        {
+        }
+
+        ~OffscreenSurface()
+        {
+            if (_surface != nullptr) {
+                _surface->Release();
+            }
+        }
+
+        void Initialize(Display* backend)
+        {
+            std::string name = "WPEWebkitOffscreenTarget-" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+            _surface = backend->Create(DefaultWidth, DefaultHeight, nullptr, name);
+        }
+
+        EGLNativeWindowType Native() const
+        {
+            return (_surface != nullptr) ? _surface->Native() : static_cast<EGLNativeWindowType>(0);
+        }
+
+    private:
+        Compositor::IDisplay::ISurface* _surface;
+    };
+
     class Surface : public IPC::Client::Handler, public Compositor::IDisplay::ISurface::ICallback {
-public:
+    public:
         Surface() = delete;
         Surface(const Surface&) = delete;
         Surface& operator=(const Surface&) = delete;
         Surface& operator=(Surface&&) = delete;
 
         Surface(struct wpe_renderer_backend_egl_target* target, int hostFd)
-        : _target(target)
-        , _ipcClient()
-        , _input(_ipcClient)
-        , _keyboard(&_input)
-        , _wheel(&_input)
-        , _pointer(&_input)
-        , _touchpanel(&_input)
-        , _surface()
-        , _triggered(false)
-    {
-        _ipcClient.initialize(*this, hostFd);
-    }
+            : _target(target)
+            , _ipcClient()
+            , _input(_ipcClient)
+            , _keyboard(&_input)
+            , _wheel(&_input)
+            , _pointer(&_input)
+            , _touchpanel(&_input)
+            , _surface()
+            , _triggered(false)
+        {
+            _ipcClient.initialize(*this, hostFd);
+        }
 
         virtual ~Surface()
-    {
-        Deinitialize();
-        _ipcClient.deinitialize();
-    }
+        {
+            Deinitialize();
+            _ipcClient.deinitialize();
+        }
 
         void Initialize(Display* backend, uint32_t width, uint32_t height)
-    {
-        _surface = backend->Create(width, height, this);
+        {
+            _surface = backend->Create(width, height, this);
 
-        if (_surface != nullptr) {
-            _surface->Keyboard(&_keyboard);
-            _surface->Wheel(&_wheel);
-            _surface->Pointer(&_pointer);
-            _surface->TouchPanel(&_touchpanel);
+            if (_surface != nullptr) {
+                _surface->Keyboard(&_keyboard);
+                _surface->Wheel(&_wheel);
+                _surface->Pointer(&_pointer);
+                _surface->TouchPanel(&_touchpanel);
 
-            if ((width != _surface->Width()) || (height != _surface->Height())) {
+                if ((width != _surface->Width()) || (height != _surface->Height())) {
+                    IPC::Message message;
+                    IPC::AdjustedDimensions::construct(message, _surface->Width(), _surface->Height());
+                    _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
+                }
+            }
+        }
+        void Deinitialize()
+        {
+            if (_surface) {
+                _surface->Keyboard(nullptr);
+                _surface->Wheel(nullptr);
+                _surface->Pointer(nullptr);
+                _surface->TouchPanel(nullptr);
+
+                _surface->Release();
+                _surface = nullptr;
+            }
+        }
+
+        EGLNativeWindowType Native() const
+        {
+            return (_surface != nullptr) ? _surface->Native() : static_cast<EGLNativeWindowType>(0);
+        }
+
+        void FrameRendered()
+        {
+            _triggered = true;
+            _surface->RequestRender();
+        }
+
+    private:
+        // IPC::Client::Handler
+        void handleMessage(char* /*data*/, size_t /*size*/) override
+        {
+            // no messages expected
+        }
+
+        // Compositor::IDisplay::ISurface::ICallback
+        void Rendered(Compositor::IDisplay::ISurface*) override
+        {
+        }
+        void Published(Compositor::IDisplay::ISurface*) override
+        {
+            if (_triggered == true) {
+                _triggered = false;
+
+                // Signal that the frame was displayed and can be disposed.
+                wpe_renderer_backend_egl_target_dispatch_frame_complete(_target);
+
+                // Inform the plugin to that a frame was displayed, so it can update it's FPS counter
                 IPC::Message message;
-                IPC::AdjustedDimensions::construct(message, _surface->Width(), _surface->Height());
+                IPC::BufferCommit::construct(message);
                 _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
             }
         }
-    }
-    void Deinitialize()
-    {
-        if (_surface) {
-            _surface->Keyboard(nullptr);
-            _surface->Wheel(nullptr);
-            _surface->Pointer(nullptr);
-            _surface->TouchPanel(nullptr);
 
-            _surface->Release();
-            _surface = nullptr;
-        }
-    }
-
-    EGLNativeWindowType Native() const
-    {
-        return (_surface != nullptr) ? _surface->Native() : static_cast<EGLNativeWindowType>(0);
-    }
-
-    void FrameRendered()
-    {
-        _triggered = true;
-        _surface->RequestRender();
-    }
-
-private:
-    // IPC::Client::Handler
-    void handleMessage(char* /*data*/, size_t /*size*/) override
-    {
-        // no messages expected
-    }
-
-    // Compositor::IDisplay::ISurface::ICallback
-    void Rendered(Compositor::IDisplay::ISurface*) override
-    {
-    }
-    void Published(Compositor::IDisplay::ISurface*) override
-    {
-        if (_triggered == true) {
-            _triggered = false;
-
-            // Signal that the frame was displayed and can be disposed.
-            wpe_renderer_backend_egl_target_dispatch_frame_complete(_target);
-
-            // Inform the plugin to that a frame was displayed, so it can update it's FPS counter
-            IPC::Message message;
-            IPC::BufferCommit::construct(message);
-            _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
-        }
-    }
-
-private:
-    struct wpe_renderer_backend_egl_target* _target;
-    IPC::Client _ipcClient;
-    Input _input;
-    Thunder::KeyboardHandler _keyboard;
-    Thunder::WheelHandler _wheel;
-    Thunder::PointerHandler _pointer;
-    Thunder::TouchPanelHandler _touchpanel;
-    Compositor::IDisplay::ISurface* _surface;
-    bool _triggered;
-};
+    private:
+        struct wpe_renderer_backend_egl_target* _target;
+        IPC::Client _ipcClient;
+        Input _input;
+        Thunder::KeyboardHandler _keyboard;
+        Thunder::WheelHandler _wheel;
+        Thunder::PointerHandler _pointer;
+        Thunder::TouchPanelHandler _touchpanel;
+        Compositor::IDisplay::ISurface* _surface;
+        bool _triggered;
+    };
 
     Display(const Display&) = delete;
     Display& operator=(const Display&) = delete;
@@ -259,20 +295,28 @@ struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_ta
 #endif
 };
 
+// Note:
+// This should work because Render() on the IDisplay::ISurface will never be called. So the compositor will
+// not create a texture for this surface, and therefore it won't be able to render it to the screen.
 struct wpe_renderer_backend_egl_offscreen_target_interface thunder_renderer_backend_egl_offscreen_target_interface = {
     // create
     []() -> void* {
-        return nullptr;
+        return new Thunder::Display::OffscreenSurface();
     },
     // destroy
-    [](void* data) {
+    [](void* target) {
+        Thunder::Display::OffscreenSurface* surface(static_cast<Thunder::Display::OffscreenSurface*>(target));
+        delete surface;
     },
     // initialize
-    [](void* data, void* backend_data) {
+    [](void* target, void* backend) {
+        Thunder::Display::OffscreenSurface* surface(static_cast<Thunder::Display::OffscreenSurface*>(target));
+        surface->Initialize(static_cast<Thunder::Display*>(backend));
     },
     // get_native_window
-    [](void* data) -> EGLNativeWindowType {
-        return static_cast<EGLNativeWindowType>(0);
+    [](void* target) -> EGLNativeWindowType {
+        Thunder::Display::OffscreenSurface* surface(static_cast<Thunder::Display::OffscreenSurface*>(target));
+        return surface->Native();
     },
 };
 }
