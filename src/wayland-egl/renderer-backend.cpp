@@ -62,6 +62,7 @@ struct EGLTarget : public IPC::Client::Handler {
     void initialize(Backend& backend, uint32_t width, uint32_t height);
     // IPC::Client::Handler
     void handleMessage(char* data, size_t size) override;
+    void resize(uint32_t width, uint32_t height);
 
     struct wpe_renderer_backend_egl_target* target;
     IPC::Client ipcClient;
@@ -163,6 +164,12 @@ void EGLTarget::initialize(Backend& backend, uint32_t width, uint32_t height)
     m_window = wl_egl_window_create(m_surface, width, height);
 }
 
+void EGLTarget::resize(uint32_t width, uint32_t height)
+{
+    wl_egl_window_resize(m_window, width, height, 0, 0);
+    wl_display_flush(m_backend->display.display());
+}
+
 EGLTarget::~EGLTarget()
 {
     ipcClient.deinitialize();
@@ -253,6 +260,7 @@ struct wpe_renderer_backend_egl_target_interface wayland_egl_renderer_backend_eg
     // resize
     [](void* data, uint32_t width, uint32_t height)
     {
+        static_cast<WaylandEGL::EGLTarget*>(data)->resize(width, height);
     },
     // frame_will_render
     [](void* data)
