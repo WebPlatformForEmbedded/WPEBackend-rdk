@@ -156,30 +156,29 @@ public:
             _surface->RequestRender();
         }
 
-    private:
-        // IPC::Client::Handler
-        void handleMessage(char* /*data*/, size_t /*size*/) override
-        {
-            // no messages expected
-        }
-
         // Compositor::IDisplay::ISurface::ICallback
         void Rendered(Compositor::IDisplay::ISurface*) override
         {
+            // Signal that the frame was displayed and can be disposed.
+            wpe_renderer_backend_egl_target_dispatch_frame_complete(_target);
         }
         void Published(Compositor::IDisplay::ISurface*) override
         {
             if (_triggered == true) {
                 _triggered = false;
 
-                // Signal that the frame was displayed and can be disposed.
-                wpe_renderer_backend_egl_target_dispatch_frame_complete(_target);
-
                 // Inform the plugin to that a frame was displayed, so it can update it's FPS counter
                 IPC::Message message;
                 IPC::BufferCommit::construct(message);
                 _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
             }
+        }
+
+    private:
+        // IPC::Client::Handler
+        void handleMessage(char* /*data*/, size_t /*size*/) override
+        {
+            // no messages expected
         }
 
     private:
