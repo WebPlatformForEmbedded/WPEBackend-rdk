@@ -27,6 +27,7 @@ option(USE_BACKEND_WESTEROS_MESA "Whether to enable support for the gbm based of
 option(USE_INPUT_LIBINPUT "Whether to enable support for the libinput input backend" ON)
 option(USE_INPUT_UDEV "Whether to enable support for the libinput input udev lib" ON)
 option(USE_INPUT_WAYLAND "Whether to enable support for the wayland input backend" OFF)
+option(USE_GENERIC_GAMEPAD "Use generic gamepad implementation" OFF)
 
 find_package(WPE REQUIRED)
 find_package(EGL REQUIRED)
@@ -99,6 +100,11 @@ elseif (USE_VIRTUAL_KEYBOARD)
             src/input/Libinput/KeyboardEventRepeating.cpp
             src/input/Libinput/LibinputServer.cpp
             )
+endif()
+
+if (USE_GENERIC_GAMEPAD)
+    include(src/gamepad/CMakeLists.txt)
+    include(src/gamepad_test/CMakeLists.txt)
 endif()
 
 if (USE_BACKEND_BCM_NEXUS)
