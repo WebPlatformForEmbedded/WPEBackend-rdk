@@ -10,6 +10,8 @@
 #include <wpe/wpe.h>
 #include <memory>
 
+#include <xkbcommon/xkbcommon.h>
+
 namespace Westeros {
 
 static WstKeyboardNestedListener keyboard_listener = {
