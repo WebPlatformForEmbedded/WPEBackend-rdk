@@ -37,6 +37,8 @@
 #include <string>
 #include <thread>
 
+#include <EGL/egl.h>
+
 namespace Thunder {
 namespace {
     const std::string SuggestedName()
@@ -104,7 +106,6 @@ public:
             , _pointer(&_input)
             , _touchpanel(&_input)
             , _surface()
-            , _triggered(false)
         {
             _ipcClient.initialize(*this, hostFd);
         }
@@ -145,15 +146,18 @@ public:
             }
         }
 
-        EGLNativeWindowType Native() const
+        EGLNativeWindowType NativeWindow()
         {
             return (_surface != nullptr) ? _surface->Native() : static_cast<EGLNativeWindowType>(0);
         }
 
         void FrameRendered()
         {
-            _triggered = true;
-            _surface->RequestRender();
+            if (_surface) {
+                _surface->RequestRender();
+            } else {
+                std::cerr << "Surface not initialized, cannot render frame." << std::endl;
+            }
         }
 
         // Compositor::IDisplay::ISurface::ICallback
@@ -164,14 +168,10 @@ public:
         }
         void Published(Compositor::IDisplay::ISurface*) override
         {
-            if (_triggered == true) {
-                _triggered = false;
-
-                // Inform the plugin to that a frame was displayed, so it can update it's FPS counter
-                IPC::Message message;
-                IPC::BufferCommit::construct(message);
-                _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
-            }
+            // Inform the plugin to that a frame was displayed, so it can update it's FPS counter
+            IPC::Message message;
+            IPC::BufferCommit::construct(message);
+            _ipcClient.sendMessage(IPC::Message::data(message), IPC::Message::size);
         }
 
     private:
@@ -190,7 +190,6 @@ public:
         Thunder::PointerHandler _pointer;
         Thunder::TouchPanelHandler _touchpanel;
         Compositor::IDisplay::ISurface* _surface;
-        bool _triggered;
     };
 
     Display(const Display&) = delete;
@@ -208,10 +207,9 @@ public:
         _display = nullptr;
     }
 
-    EGLNativeDisplayType Native() const
+    EGLNativeDisplayType NativeDisplay() const
     {
-        EGLDisplay display = eglGetDisplay(_display->Native());
-        return (_display != nullptr) ? _display->Native() : EGL_NO_DISPLAY;
+        return (_display != nullptr) ? _display->Native() : EGL_DEFAULT_DISPLAY;
     }
 
     uint32_t Platform() const
@@ -243,7 +241,7 @@ struct wpe_renderer_backend_egl_interface thunder_renderer_backend_egl_interface
     // get_native_display
     [](void* data) -> EGLNativeDisplayType {
         Thunder::Display& backend(*static_cast<Thunder::Display*>(data));
-        return backend.Native();
+        return backend.NativeDisplay();
     },
 #if WPE_CHECK_VERSION(1, 1, 0)
     // get_platform
@@ -272,7 +270,7 @@ struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_ta
     // get_native_window
     [](void* data) -> EGLNativeWindowType {
         Thunder::Display::Surface& target(*static_cast<Thunder::Display::Surface*>(data));
-        return target.Native();
+        return target.NativeWindow();
     },
     // resize
     [](void* data, uint32_t width, uint32_t height) {
@@ -283,7 +281,7 @@ struct wpe_renderer_backend_egl_target_interface thunder_renderer_backend_egl_ta
     // frame_rendered
     [](void* data) {
         Thunder::Display::Surface& target(*static_cast<Thunder::Display::Surface*>(data));
-        target.FrameRendered();
+        target.FrameReady();
     },
 #if WPE_CHECK_VERSION(1, 9, 1)
     // deinitialize
