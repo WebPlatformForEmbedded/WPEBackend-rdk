@@ -36,29 +36,8 @@ elseif(Westeros_FIND_REQUIRED)
 endif()
 
 find_package(PkgConfig)
-pkg_check_modules(PC_WESTEROS ${_WESTEROS_MODE} westeros-compositor)
-find_path(WESTEROS_INCLUDE_DIRS
-    NAMES westeros-compositor.h
-    HINTS ${PC_WESTEROS_INCLUDE_DIRS} ${PC_WESTEROS_INCLUDEDIR}
-)
+pkg_check_modules(westeros-compositor ${_WESTEROS_MODE} IMPORTED_TARGET GLOBAL westeros-compositor)
 
-find_library(WESTEROS_LIBRARIES
-    NAMES ${PC_WESTEROS_LIBRARIES}
-    HINTS ${PC_WESTEROS_LIBRARY_DIRS} ${PC_WESTEROS_LIBDIR}
-)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Westeros DEFAULT_MSG WESTEROS_FOUND WESTEROS_INCLUDE_DIRS WESTEROS_LIBRARIES)
-mark_as_advanced(WESTEROS_INCLUDE_DIRS WESTEROS_LIBRARIES)
-
-if(Westeros_FOUND AND NOT TARGET Westeros::Westeros)
-    add_library(Westeros::Westeros UNKNOWN IMPORTED)
-    set_target_properties(Westeros::Westeros PROPERTIES
-            IMPORTED_LOCATION "${WESTEROS_LIB}"
-            INTERFACE_LINK_LIBRARIES "${WESTEROS_LIBRARIES}"
-            INTERFACE_COMPILE_OPTIONS "${WESTEROS_DEFINITIONS}"
-            INTERFACE_INCLUDE_DIRECTORIES "${WESTEROS_INCLUDE_DIRS}"
-            
+if (westeros-compositor_FOUND)
+   add_library(Westeros::Westeros ALIAS PkgConfig::westeros-compositor)
 endif()
-
-
