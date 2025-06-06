@@ -24,7 +24,7 @@
  */
 
 #include "compositorclient-get-surface.h"
-#include "display.h"
+#include "input.h"
 #include <compositor/Client.h>
 #include <cstring>
 #include <wayland-egl-backend.h>
@@ -37,34 +37,35 @@ extern "C" {
 
 __attribute__((visibility("default"))) void* wpe_compositorclient_get_parent_surface(struct wpe_renderer_backend_egl* backend)
 {
-    Compositor::IDisplay::ISurface* surface = nullptr;
-    void* nativesurface = nullptr;
-    EGLNativeWindowType nativewindow;
-
-    if (!backend)
-        return nativesurface;
-    ;
-
-    auto* base = reinterpret_cast<struct wpe_renderer_backend_egl_base*>(backend);
-    auto* display = reinterpret_cast<Thunder::Compositor::IDisplay*>(base->interface_data);
-
-    // get the ISurface from the IDisplay
-    if (display)
-        surface = display->SurfaceByName(Compositor::IDisplay::SuggestedName());
-
-    // get the native surface
-    if (surface != nullptr) {
-        nativewindow = surface->Native();
 #if defined WL_EGL_PLATFORM
-        // On wayland EGLNativeWindowType is struct wl_egl_window * that contains the surface
-        if (nativewindow != nullptr) {
-            nativesurface = reinterpret_cast<wl_egl_window*>(nativewindow)->surface;
+    void* nativeSurface = nullptr;
+
+    if (backend != nullptr) {
+        Compositor::IDisplay::ISurface* surface = nullptr;
+        // get
+        auto* base = reinterpret_cast<struct wpe_renderer_backend_egl_base*>(backend);
+        auto* display = reinterpret_cast<Thunder::Compositor::IDisplay*>(base->interface_data);
+
+        // get the ISurface from the IDisplay
+        if (display) {
+            surface = display->SurfaceByName(Compositor::IDisplay::SuggestedName());
         }
-#endif
+
+        // get the native surface
+        if (surface != nullptr) {
+
+            EGLNativeWindowType nativeWindow = surface->Native();
+
+            // On wayland EGLNativeWindowType is struct wl_egl_window * that contains the surface
+            if (nativeWindow) {
+                nativeSurface = reinterpret_cast<wl_egl_window*>(nativeWindow)->surface;
+            }
+        }
     }
-
-    return nativesurface;
+    return nativeSurface;
+#else
+    return nullptr;
+#endif
 }
 }
-
 }
