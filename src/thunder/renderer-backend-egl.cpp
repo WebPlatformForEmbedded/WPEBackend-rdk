@@ -151,7 +151,7 @@ public:
             return (_surface != nullptr) ? _surface->Native() : static_cast<EGLNativeWindowType>(0);
         }
 
-        void FrameRendered()
+        void FrameReady()
         {
             if (_surface) {
                 _surface->RequestRender();
