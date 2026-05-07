@@ -31,6 +31,7 @@
 #include "ipc.h"
 #include <EGL/egl.h>
 #include <EGL/eglvivante.h>
+#include <cstdio>
 #include "ipc-viv-imx6.h"
 
 namespace VIVimx6 {

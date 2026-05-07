@@ -94,6 +94,9 @@ void ViewBackend::initialize()
 
     wpe_view_backend_dispatch_set_size(backend, width, height);
 
+    WPE::LibinputServer::singleton().setHandleTouchEvents(true);
+    WPE::LibinputServer::singleton().setPointerBounds(width, height);
+
     WPE::LibinputServer::singleton().setClient(this);
 }
 
